@@ -1,0 +1,121 @@
+---
+description: TDD, Clean Architecture, stack Expo et contrat avec l'API
+alwaysApply: true
+---
+
+# Wallet mobile — contraintes
+
+PFM (suivi de dépenses), pas un wallet de paiement. Un user a **plusieurs accounts**. `cash` (Espèces) = ledger manuel. `bank` = agrégation AIS lecture seule. **Interdit** : virement, PIS, prélèvement, toute écriture sur un compte bancaire réel. Les écritures PFM (saisie espèces, catégorie, note, budget, transfer interne) vont vers `../api`.
+
+L'app Expo (SDK 57) parle à `../api`. Lire https://docs.expo.dev/versions/v57.0.0/ avant d'écrire du code. Installer via `npx expo install`, jamais `pnpm add` seul.
+
+## TDD (non négociable)
+
+1. Écrire un test qui échoue, puis le code minimal, puis refactorer.
+2. Pas de use case, règle métier, mapper ou client HTTP sans test.
+3. Tester le domaine et les use cases en premier (purs, sans RN/Expo).
+4. Les écrans se testent via hooks / view-models, pas via le détail visuel.
+5. Un test rouge existant se corrige avant toute feature.
+
+```ts
+// ❌ BAD — logique métier née dans un composant
+export function Balance({ cents }: { cents: number }) {
+  return <Text>{(cents / 100).toFixed(2)} €</Text>;
+}
+
+// ✅ GOOD — règle testée dans le domaine, l'UI n'affiche que le résultat
+// domain/money.test.ts → formatMoney(199) === "1,99 €"
+export function Balance({ label }: { label: string }) {
+  return <Text>{label}</Text>;
+}
+```
+
+## Clean Architecture
+
+Dépendances vers l'intérieur : `app` / UI → application → domain. L'infra implémente les ports du domain.
+
+```
+src/
+  app/                 # routes Expo Router uniquement
+  screens/             # corps d'écrans
+  components/          # UI réutilisable
+  domain/              # entités, value objects, ports (interfaces)
+  application/         # use cases — orchestre, ne parle pas à fetch/SecureStore
+  infrastructure/      # HTTP, SecureStore, horloge, adapters
+```
+
+- `src/app` = routes only. Pas de composants, types ou fetch colocalisés.
+- Domain et application : zéro import `react-native`, `expo-*`, `@tanstack/*`.
+- L'argent n'est jamais un `number` flottant : integer (cents) ou value object.
+- Secrets / tokens : `expo-secure-store` uniquement, jamais AsyncStorage.
+
+```ts
+// ❌ BAD — use case collé à fetch
+export async function listTransactions() {
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/transactions`);
+  return res.json();
+}
+
+// ✅ GOOD — port dans domain, adapter dans infrastructure
+export interface TransactionRepository {
+  list(): Promise<Transaction[]>;
+}
+export class ListTransactions {
+  constructor(private readonly transactions: TransactionRepository) {}
+  execute() {
+    return this.transactions.list();
+  }
+}
+```
+
+## Stack mobile (gelée)
+
+| Besoin | Choix | Interdit |
+|---|---|---|
+| Navigation | `expo-router` | import direct `@react-navigation/*` |
+| UI native | `@expo/ui` (Host, List, BottomSheet, Switch, Menu…) | `@gorhom/bottom-sheet`, Picker/Switch RN |
+| Listes longues | `FlatList` | FlashList, `@expo/ui` List (pas virtualisée) |
+| HTTP | `fetch` | axios |
+| Cache serveur | TanStack Query | Redux pour l'état serveur |
+| Formulaires | `react-hook-form` + `@hookform/resolvers` + Zod, contrôlés | refs / uncontrolled |
+| Crypto locale | `expo-crypto` (hash PIN) | hash maison |
+| Dates | `Intl` | `date-fns`, Moment |
+| Graphes | plus tard (`victory-native`) | Skia en V1 |
+| Validation | Zod (schémas partagés avec l'API) | types TS seuls à la frontière HTTP |
+| Tests | Jest + `jest-expo` | |
+| Theme | `src/constants/theme.ts` | second système (NativeWind, Tamagui) |
+| i18n | `expo-localization` + i18next | libellés en dur dans les écrans |
+| Contrat métier | `@wallet/shared` | recopier le catalogue catégories |
+
+Écrans data : états loading, error, empty, content. Mutations : pas de double submit, brouillon conservé si échec.
+
+## Auth
+
+Deux couches distinctes :
+
+1. **Coffre local (obligatoire)** : PIN app **4 chiffres** pour ouvrir l'app. Hash + sel dans `expo-secure-store`, jamais le PIN en clair. Sans PIN configuré → écran de création, pas le reste de l'app. Biométrie = raccourci du PIN, le PIN reste le repli.
+2. **Compte API** : email + mot de passe, JWT access court + refresh rotatif (SecureStore). Pas de magic link ni OAuth en V1.
+
+## i18n
+
+`expo-localization` + `i18next` + `react-i18next`. Locales de base : `fr`, `en`. Défaut **`fr`**. Init dans `src/i18n`. Les IDs de catégorie ne se traduisent pas ; libellés UI / catégories / kinds via `@wallet/shared` (`t()`, `t('…', { ns: 'category' })`).
+
+## Accounts, records, catégories
+
+Source de vérité : `../shared`.
+
+- Plusieurs accounts par user. Kinds : `cash` | `bank`. « Add account » = nouveau `cash` ou connexion `bank` (AIS).
+- `cash` (libellé défaut FR : Espèces) : **saisies manuelles uniquement**, pas de sync banque. Onboarding : créer un `cash` par défaut.
+- `bank` : records issus du sync AIS (IBAN, libellé banque). Jamais d'écriture chez la banque.
+- Record : `expense` | `income` | `transfer`. `transfer` = entre deux accounts du user (cash↔bank inclus), **sans** catégorie. Clearing : `cleared` | `uncleared`.
+- Catalog catégories figé (11 racines). Ne pas inventer de catégorie à l'UI.
+
+## Hors-ligne
+
+Lecture : cache TanStack Query (soldes, txs) ; NetInfo → `onlineManager`. Sync banque = réseau obligatoire.
+
+Écritures **métier** (saisie cash, catégorie, note, budget, transfer interne) : file d'attente vers **notre** API + clé d'idempotence. Jamais une écriture vers la banque.
+
+## API (`../api`)
+
+Architecture hexagonale, TDD, mêmes value objects / schémas Zod que le mobile. Détail dans `../api/.cursor/rules/architecture.mdc`.
