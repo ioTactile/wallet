@@ -1,0 +1,102 @@
+import { createHash } from 'node:crypto';
+
+import type { Email } from '../domain/email.js';
+import type {
+  Clock,
+  Hasher,
+  IdGenerator,
+  RefreshTokenRepository,
+  TokenIssuer,
+  UserRepository,
+} from '../domain/ports.js';
+import type { IssuedRefresh, RefreshToken } from '../domain/refresh-token.js';
+import type { User } from '../domain/user.js';
+
+export class InMemoryUserRepository implements UserRepository {
+  private readonly users = new Map<string, User>();
+
+  async findByEmail(email: Email): Promise<User | null> {
+    return [...this.users.values()].find((user) => user.email.value === email.value) ?? null;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.users.get(id) ?? null;
+  }
+
+  async save(user: User): Promise<void> {
+    this.users.set(user.id, user);
+  }
+}
+
+export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
+  private readonly tokens = new Map<string, RefreshToken>();
+
+  async findByHash(tokenHash: string): Promise<RefreshToken | null> {
+    return [...this.tokens.values()].find((token) => token.tokenHash === tokenHash) ?? null;
+  }
+
+  async save(token: RefreshToken): Promise<void> {
+    this.tokens.set(token.id, token);
+  }
+
+  async revokeAllForUser(userId: string, now: Date): Promise<void> {
+    for (const token of this.tokens.values()) {
+      if (token.userId === userId && !token.isRevoked) {
+        this.tokens.set(token.id, token.revoke(now));
+      }
+    }
+  }
+}
+
+export class FakeHasher implements Hasher {
+  async hash(plain: string): Promise<string> {
+    return `hashed:${plain}`;
+  }
+
+  async verify(plain: string, hash: string): Promise<boolean> {
+    return hash === `hashed:${plain}`;
+  }
+}
+
+export class FixedClock implements Clock {
+  constructor(private current: Date) {}
+
+  now(): Date {
+    return this.current;
+  }
+
+  advance(ms: number) {
+    this.current = new Date(this.current.getTime() + ms);
+  }
+}
+
+export class SequentialIds implements IdGenerator {
+  private n = 0;
+
+  generate(): string {
+    this.n += 1;
+    return `id-${this.n}`;
+  }
+}
+
+export class FakeTokenIssuer implements TokenIssuer {
+  private n = 0;
+
+  issueAccess(userId: string): string {
+    return `access:${userId}`;
+  }
+
+  issueRefresh(): IssuedRefresh {
+    this.n += 1;
+    const raw = `refresh-${this.n}`;
+    return {
+      raw,
+      tokenHash: this.hashRefresh(raw),
+      expiresAt: new Date('2026-10-01T00:00:00.000Z'),
+    };
+  }
+
+  hashRefresh(raw: string): string {
+    return createHash('sha256').update(raw).digest('hex');
+  }
+}

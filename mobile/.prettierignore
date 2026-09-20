@@ -1,0 +1,12 @@
+node_modules
+.expo
+dist
+web-build
+ios
+android
+pnpm-lock.yaml
+expo-env.d.ts
+.agents
+.aider-desk
+.claude
+.cursor

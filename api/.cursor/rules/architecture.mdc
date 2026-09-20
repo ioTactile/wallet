@@ -1,0 +1,80 @@
+---
+description: TDD et architecture hexagonale de l'API wallet
+alwaysApply: true
+---
+
+# Wallet API — contraintes
+
+PFM : plusieurs accounts (`cash` manuel, `bank` AIS lecture seule). Jamais de virement, PIS, ni écriture sur un compte bancaire réel. L'API stocke accounts, records (saisie cash + sync banque) + métadonnées (catégorie, note, budget). Le connecteur banque est un **adapter** derrière `BankConnection`.
+
+API consommée par `../mobile`. Hexagone + TDD. Le domain ne connaît ni HTTP, ni ORM, ni framework, ni l'agrégateur.
+
+## TDD (non négociable)
+
+1. Test qui échoue → code minimal → refactor.
+2. Use cases et règles métier d'abord, adapters ensuite.
+3. Chaque port a un test de contrat (fake in-memory + vrai adapter).
+4. Pas de handler HTTP sans test d'acceptance du use case.
+
+```ts
+// ❌ BAD — règle dans le handler Fastify
+app.patch("/transactions/:id", async (req, reply) => {
+  if (!req.body.categoryId) return reply.code(400).send();
+});
+
+// ✅ GOOD — règle dans le domain, testée sans HTTP
+// domain/category.test.ts → expect(() => CategoryId.of("")).toThrow()
+```
+
+## Hexagone
+
+```
+src/
+  domain/              # entités, VOs, ports (interfaces)
+  application/         # use cases
+  infrastructure/      # adapters : http, persistence, clock, auth
+  main.ts              # composition root uniquement
+```
+
+- Les dépendances pointent vers le domain. Interdit : `domain` → `fastify` / `drizzle` / `node:http`.
+- Composition root : instancie les adapters et injecte-les dans les use cases.
+- Validation Zod aux frontières (HTTP in/out). Le domain jette des erreurs métier typées.
+- Argent : integer (cents) ou value object, jamais `number` flottant.
+- Auth, horloge, UUID, mail : ports, jamais `Date.now()` / `Math.random()` dans le domain.
+
+```ts
+// domain/ports/transaction-repository.ts
+export interface TransactionRepository {
+  getById(id: TransactionId): Promise<Transaction | null>;
+  save(transaction: Transaction): Promise<void>;
+}
+
+// application/categorize-transaction.ts — pas d'HTTP ici
+export class CategorizeTransaction {
+  constructor(private readonly transactions: TransactionRepository) {}
+  async execute(id: TransactionId, categoryId: CategoryId): Promise<Transaction> {
+    const tx = await this.transactions.getById(id);
+    if (!tx) throw new TransactionNotFound(id);
+    tx.categorize(categoryId);
+    await this.transactions.save(tx);
+    return tx;
+  }
+}
+```
+
+## Stack API (gelée)
+
+| Besoin | Choix | Interdit |
+|---|---|---|
+| HTTP | Fastify | NestJS (fuite de décorateurs dans le domain) |
+| HTTP durcissement | `@fastify/cors`, `@fastify/helmet`, `@fastify/rate-limit` | |
+| Tests | Vitest + fakes in-memory ; **PGlite** pour l'adapter Drizzle | PGlite en prod / dev app |
+
+| Validation / contrat | Zod (`@wallet/shared`) | DTO class-validator |
+| Persistence | Drizzle + PostgreSQL (`postgres.js`) | ORM dans le domain |
+| Auth | `@fastify/jwt` (adapter HTTP uniquement) + argon2 | secret / argon2 dans le domain |
+| Banque | port `BankConnection` (AIS pull) | SDK agrégateur dans le domain ; tout endpoint PIS |
+
+Le mobile n'importe aucun fichier de `infrastructure/`. Contrat = `@wallet/shared` (Zod, catégories, `RecordKind`) + types domain, pas les handlers.
+
+Un record est `expense` | `income` | `transfer` et appartient à un account. `cash` : saisie manuelle uniquement. `bank` : sync AIS uniquement (pas de PIS). `transfer` relie deux accounts du user (y compris Espèces), sans catégorie. Catalogue `@wallet/shared` = seule taxonomie.

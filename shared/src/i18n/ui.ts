@@ -1,0 +1,122 @@
+import { ACCOUNT_KIND_LABELS } from '../account-labels.js';
+import { CATEGORY_LABELS } from '../category/labels.js';
+import { LOCALES, type Locale } from '../locale.js';
+
+export const UI_MESSAGES = {
+  fr: {
+    'tabs.home': 'Accueil',
+    'tabs.explore': 'Explorer',
+    'tabs.records': 'Opérations',
+    'account.add': 'Ajouter un compte',
+    'account.section': 'Mes comptes',
+    'record.expense': 'Dépense',
+    'record.income': 'Revenu',
+    'record.transfer': 'Transfert',
+    'record.cleared': 'Pointé',
+    'record.uncleared': 'Non pointé',
+    'record.showMore': 'Voir plus',
+    'pin.createTitle': 'Créer un code PIN',
+    'pin.confirmTitle': 'Confirmer le code PIN',
+    'pin.unlockTitle': 'Saisir le code PIN',
+    'pin.submit': 'Valider',
+    'pin.mismatch': 'Les codes PIN ne correspondent pas',
+    'pin.wrong': 'Code PIN incorrect',
+    'welcome.title': 'Connectez-vous ou créez un compte sécurisé.',
+    'welcome.email': "Se connecter avec l'e-mail",
+    'welcome.legal': 'En vous inscrivant, vous acceptez nos',
+    'welcome.terms': "Conditions d'utilisation",
+    'welcome.and': 'et reconnaissez notre',
+    'welcome.privacy': 'Politique de confidentialité',
+    'signIn.title': 'Connexion',
+    'signIn.registerTitle': 'Créer un compte',
+    'signIn.email': 'E-mail',
+    'signIn.password': 'Mot de passe',
+    'signIn.submit': 'Continuer',
+    'signIn.switchToRegister': "Pas encore de compte ? S'inscrire",
+    'signIn.switchToLogin': 'Déjà un compte ? Se connecter',
+    'signIn.invalidCredentials': 'E-mail ou mot de passe incorrect',
+    'signIn.emailTaken': 'Cet e-mail est déjà utilisé',
+    'signIn.genericError': 'Impossible de se connecter. Réessayez.',
+    'profile.title': 'Profil',
+    'profile.firstName': 'Prénom',
+    'profile.lastName': 'Nom',
+    'profile.email': 'E-mail',
+    'profile.logout': 'Déconnexion',
+    'profile.saveError': "Impossible d'enregistrer le profil. Réessayez.",
+    'menu.wallet': 'Mon Wallet',
+    'menu.close': 'Fermer le menu',
+    'home.title': 'Accueil',
+    'home.accounts': 'Mes comptes',
+    'home.records': 'Opérations',
+    'home.addAccount': 'Ajouter un compte',
+  },
+  en: {
+    'tabs.home': 'Home',
+    'tabs.explore': 'Explore',
+    'tabs.records': 'Records',
+    'account.add': 'Add account',
+    'account.section': 'My accounts',
+    'record.expense': 'Expense',
+    'record.income': 'Income',
+    'record.transfer': 'Transfer',
+    'record.cleared': 'Cleared',
+    'record.uncleared': 'Uncleared',
+    'record.showMore': 'Show more',
+    'pin.createTitle': 'Create a PIN',
+    'pin.confirmTitle': 'Confirm your PIN',
+    'pin.unlockTitle': 'Enter PIN',
+    'pin.submit': 'Confirm',
+    'pin.mismatch': 'PIN codes do not match',
+    'pin.wrong': 'Incorrect PIN',
+    'welcome.title': 'Sign in or create a secure account.',
+    'welcome.email': 'Sign in using email',
+    'welcome.legal': 'By signing up you agree to our',
+    'welcome.terms': 'Terms of Service',
+    'welcome.and': 'and acknowledge our',
+    'welcome.privacy': 'Privacy Policy',
+    'signIn.title': 'Sign in',
+    'signIn.registerTitle': 'Create an account',
+    'signIn.email': 'Email',
+    'signIn.password': 'Password',
+    'signIn.submit': 'Continue',
+    'signIn.switchToRegister': 'No account yet? Register',
+    'signIn.switchToLogin': 'Already have an account? Sign in',
+    'signIn.invalidCredentials': 'Incorrect email or password',
+    'signIn.emailTaken': 'This email is already taken',
+    'signIn.genericError': 'Could not sign in. Try again.',
+    'profile.title': 'User profile',
+    'profile.firstName': 'First name',
+    'profile.lastName': 'Last name',
+    'profile.email': 'Email',
+    'profile.logout': 'Logout',
+    'profile.saveError': 'Could not save profile. Try again.',
+    'menu.wallet': 'My Wallet',
+    'menu.close': 'Close menu',
+    'home.title': 'Home',
+    'home.accounts': 'My accounts',
+    'home.records': 'Records',
+    'home.addAccount': 'Add account',
+  },
+} as const satisfies Record<Locale, Record<string, string>>;
+
+export type UiMessageKey = keyof (typeof UI_MESSAGES)['fr'];
+
+export function i18nResources() {
+  return Object.fromEntries(
+    LOCALES.map((locale) => [
+      locale,
+      {
+        translation: UI_MESSAGES[locale],
+        category: CATEGORY_LABELS[locale],
+        accountKind: ACCOUNT_KIND_LABELS[locale],
+      },
+    ]),
+  ) as Record<
+    Locale,
+    {
+      translation: (typeof UI_MESSAGES)['fr'];
+      category: (typeof CATEGORY_LABELS)['fr'];
+      accountKind: (typeof ACCOUNT_KIND_LABELS)['fr'];
+    }
+  >;
+}
