@@ -95,7 +95,9 @@ export function SignInScreen() {
         {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
         <Pressable
           disabled={isSubmitting}
-          onPress={handleSubmit(onSubmit)}
+          onPress={() => {
+            void handleSubmit(onSubmit)();
+          }}
           style={[
             styles.submit,
             {

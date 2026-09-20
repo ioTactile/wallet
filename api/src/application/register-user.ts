@@ -11,6 +11,7 @@ import type {
 } from '../domain/ports.js';
 import { RefreshToken } from '../domain/refresh-token.js';
 import { User } from '../domain/user.js';
+import type { EnsureDefaultCashAccount } from './ensure-default-cash-account.js';
 import { toSession, type Session } from './session.js';
 
 export class RegisterUser {
@@ -21,6 +22,7 @@ export class RegisterUser {
     private readonly tokens: TokenIssuer,
     private readonly ids: IdGenerator,
     private readonly clock: Clock,
+    private readonly ensureDefaultCash: EnsureDefaultCashAccount,
   ) {}
 
   async execute(input: { email: string; password: string }): Promise<Session> {
@@ -34,6 +36,7 @@ export class RegisterUser {
     const now = this.clock.now();
     const user = new User(this.ids.generate(), email, await this.hasher.hash(password.value), now);
     await this.users.save(user);
+    await this.ensureDefaultCash.execute(user.id);
     return this.openSession(user);
   }
 

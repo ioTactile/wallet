@@ -4,6 +4,8 @@ import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
+import type { AccountRoutesDeps } from './infrastructure/http/account-routes.js';
+import { registerAccountRoutes } from './infrastructure/http/account-routes.js';
 import type { AuthRoutesDeps } from './infrastructure/http/auth-routes.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
 import { mapError } from './infrastructure/http/error-handler.js';
@@ -18,10 +20,13 @@ declare module 'fastify' {
 export async function createServer(env: Env): Promise<FastifyInstance> {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
 
-  await app.register(helmet);
+  await app.register(helmet, {
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  });
   await app.register(cors, {
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
   });
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,
@@ -52,6 +57,9 @@ export async function createServer(env: Env): Promise<FastifyInstance> {
   return app;
 }
 
-export async function registerApi(app: FastifyInstance, deps: AuthRoutesDeps): Promise<void> {
+export type ApiDeps = AuthRoutesDeps & AccountRoutesDeps;
+
+export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<void> {
   await registerAuthRoutes(app, deps);
+  await registerAccountRoutes(app, deps);
 }

@@ -1,8 +1,17 @@
+import { HttpAccountApi } from '@/infrastructure/account-api';
 import { HttpAuthApi } from '@/infrastructure/auth-api';
 import { ExpoPinHasher } from '@/infrastructure/expo-pin-hasher';
 import { secretStore } from '@/infrastructure/expo-secret-store';
 import { SecurePinVault, SecureSessionVault } from '@/infrastructure/secure-vaults';
 
+import {
+  ArchiveAccount,
+  CreateCashAccount,
+  DeleteAccount,
+  GetAccount,
+  ListAccounts,
+  UpdateAccount,
+} from './accounts';
 import {
   HydrateAuth,
   LoginAccount,
@@ -17,6 +26,7 @@ const pinVault = new SecurePinVault(secretStore);
 const sessionVault = new SecureSessionVault(secretStore);
 const pinHasher = new ExpoPinHasher();
 const authApi = new HttpAuthApi();
+const accountApi = new HttpAccountApi(sessionVault, authApi);
 
 export const authUseCases = {
   pinVault,
@@ -28,4 +38,13 @@ export const authUseCases = {
   logout: new LogoutAccount(authApi, sessionVault),
   updateProfile: new UpdateAccountProfile(authApi, sessionVault),
   hydrate: new HydrateAuth(pinVault, sessionVault),
+};
+
+export const accountUseCases = {
+  list: new ListAccounts(accountApi),
+  get: new GetAccount(accountApi),
+  createCash: new CreateCashAccount(accountApi),
+  update: new UpdateAccount(accountApi),
+  archive: new ArchiveAccount(accountApi),
+  delete: new DeleteAccount(accountApi),
 };

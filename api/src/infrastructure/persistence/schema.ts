@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -19,3 +19,27 @@ export const refreshTokens = pgTable('refresh_tokens', {
   revokedAt: timestamp('revoked_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
 });
+
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    kind: text('kind').notNull(),
+    name: text('name').notNull(),
+    currency: text('currency').notNull(),
+    color: text('color').notNull(),
+    excludeFromStats: boolean('exclude_from_stats').notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true, mode: 'date' }),
+    iban: text('iban'),
+    institutionName: text('institution_name'),
+    minBalanceCents: integer('min_balance_cents'),
+    maxBalanceCents: integer('max_balance_cents'),
+    position: integer('position').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [index('accounts_user_id_idx').on(table.userId)],
+);

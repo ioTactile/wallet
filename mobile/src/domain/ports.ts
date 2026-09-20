@@ -1,3 +1,5 @@
+import type { Account, CreateAccountBody, UpdateAccountBody } from '@wallet/shared';
+
 import type { PinRecord, Session } from './session';
 
 export interface PinVault {
@@ -32,5 +34,25 @@ export class AuthApiError extends Error {
   constructor(readonly code: string) {
     super(code);
     this.name = 'AuthApiError';
+  }
+}
+
+export type ListAccountsOptions = {
+  includeArchived?: boolean;
+};
+
+export interface AccountRepository {
+  list(options?: ListAccountsOptions): Promise<Account[]>;
+  getById(id: string): Promise<Account>;
+  create(body: CreateAccountBody): Promise<Account>;
+  update(id: string, body: UpdateAccountBody): Promise<Account>;
+  archive(id: string, archived: boolean): Promise<Account>;
+  delete(id: string): Promise<void>;
+}
+
+export class AccountApiError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'AccountApiError';
   }
 }

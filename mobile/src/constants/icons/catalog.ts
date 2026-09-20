@@ -10,9 +10,11 @@ export const Icons = {
   shield: { ios: 'shield.fill', android: 'shield', web: 'shield' },
   mail: { ios: 'envelope.fill', android: 'mail', web: 'mail' },
   list: { ios: 'list.bullet', android: 'format_list_bulleted', web: 'format_list_bulleted' },
+  plus: { ios: 'plus', android: 'add', web: 'add' },
+  trash: { ios: 'trash', android: 'delete', web: 'delete' },
 } as const satisfies Record<string, CrossPlatformIcon>;
 
 export type AppIconName = keyof typeof Icons;
 
 export type HeaderLeftIcon = Extract<AppIconName, 'menu' | 'chevronLeft'>;
-export type HeaderRightIcon = Extract<AppIconName, 'bell' | 'checkmark'>;
+export type HeaderRightIcon = Extract<AppIconName, 'bell' | 'checkmark' | 'plus'>;

@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 
+import type { Account } from '../domain/account.js';
 import type { Email } from '../domain/email.js';
 import type {
+  AccountRepository,
   Clock,
   Hasher,
   IdGenerator,
@@ -11,6 +13,30 @@ import type {
 } from '../domain/ports.js';
 import type { IssuedRefresh, RefreshToken } from '../domain/refresh-token.js';
 import type { User } from '../domain/user.js';
+
+export class InMemoryAccountRepository implements AccountRepository {
+  private readonly accounts = new Map<string, Account>();
+
+  async listByUser(userId: string, options?: { includeArchived?: boolean }): Promise<Account[]> {
+    const includeArchived = options?.includeArchived ?? false;
+    return [...this.accounts.values()]
+      .filter((account) => account.userId === userId)
+      .filter((account) => includeArchived || account.archivedAt === null)
+      .sort((a, b) => a.position - b.position || a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async getById(id: string): Promise<Account | null> {
+    return this.accounts.get(id) ?? null;
+  }
+
+  async save(account: Account): Promise<void> {
+    this.accounts.set(account.id, account);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.accounts.delete(id);
+  }
+}
 
 export class InMemoryUserRepository implements UserRepository {
   private readonly users = new Map<string, User>();

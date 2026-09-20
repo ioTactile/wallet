@@ -59,7 +59,13 @@ export function ProfileScreen() {
         leftIcon="chevronLeft"
         rightIcon="checkmark"
         onLeftPress={() => router.back()}
-        onRightPress={isSubmitting ? undefined : handleSubmit(onSave)}
+        onRightPress={
+          isSubmitting
+            ? undefined
+            : () => {
+                void handleSubmit(onSave)();
+              }
+        }
       />
       <View style={styles.body}>
         <View style={styles.identityRow}>

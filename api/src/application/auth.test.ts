@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { EmailAlreadyTaken, InvalidCredentials, InvalidRefreshToken } from '../domain/errors.js';
+import { EnsureDefaultCashAccount } from './ensure-default-cash-account.js';
 import {
   FakeHasher,
   FakeTokenIssuer,
   FixedClock,
+  InMemoryAccountRepository,
   InMemoryRefreshTokenRepository,
   InMemoryUserRepository,
   SequentialIds,
@@ -19,17 +21,19 @@ import { UpdateProfile } from './update-profile.js';
 function auth() {
   const users = new InMemoryUserRepository();
   const refreshTokens = new InMemoryRefreshTokenRepository();
+  const accounts = new InMemoryAccountRepository();
   const hasher = new FakeHasher();
   const tokens = new FakeTokenIssuer();
   const ids = new SequentialIds();
   const clock = new FixedClock(new Date('2026-09-19T20:00:00.000Z'));
+  const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
 
   return {
     users,
     refreshTokens,
     clock,
     tokens,
-    register: new RegisterUser(users, refreshTokens, hasher, tokens, ids, clock),
+    register: new RegisterUser(users, refreshTokens, hasher, tokens, ids, clock, ensureDefaultCash),
     login: new LoginUser(users, refreshTokens, hasher, tokens, ids, clock),
     refresh: new RefreshSession(users, refreshTokens, tokens, ids, clock),
     logout: new LogoutUser(refreshTokens, tokens, clock),

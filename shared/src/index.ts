@@ -17,13 +17,42 @@ export {
   type UpdateProfileBody,
 } from './auth/schemas.js';
 export {
+  ACCOUNT_COLORS,
   ACCOUNT_KINDS,
+  DEFAULT_ACCOUNT_COLOR,
+  DEFAULT_ACCOUNT_CURRENCY,
   DEFAULT_CASH_ACCOUNT_ID,
+  HEX_COLOR_PATTERN,
   canSyncFromBank,
   canTransferBetween,
+  isHexColor,
   isManualLedger,
+  type AccountColor,
   type AccountKind,
 } from './account.js';
+export {
+  accountKindSchema,
+  accountNameSchema,
+  accountSchema,
+  accountsResponseSchema,
+  archiveAccountBodySchema,
+  bankAccountSchema,
+  cashAccountSchema,
+  createAccountBodySchema,
+  hexColorSchema,
+  ibanSchema,
+  institutionNameSchema,
+  listAccountsQuerySchema,
+  updateAccountBodySchema,
+  type Account,
+  type AccountsResponse,
+  type ArchiveAccountBody,
+  type BankAccount,
+  type CashAccount,
+  type CreateAccountBody,
+  type ListAccountsQuery,
+  type UpdateAccountBody,
+} from './account/schemas.js';
 export { ACCOUNT_KIND_LABELS, accountKindLabel } from './account-labels.js';
 export {
   CATEGORIES,

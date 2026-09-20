@@ -43,3 +43,27 @@ export class Unauthorized extends DomainError {
     super('unauthorized', 'Unauthorized');
   }
 }
+
+export class InvalidAccount extends DomainError {
+  constructor(message = 'Invalid account') {
+    super('invalid_account', message);
+  }
+}
+
+export class AccountNotFound extends DomainError {
+  constructor() {
+    super('account_not_found', 'Account not found');
+  }
+}
+
+export class CannotDeleteLastCashAccount extends DomainError {
+  constructor() {
+    super('cannot_delete_last_cash_account', 'Cannot delete the last cash account');
+  }
+}
+
+export class AccountKindMismatch extends DomainError {
+  constructor() {
+    super('account_kind_mismatch', 'Account kind mismatch');
+  }
+}
