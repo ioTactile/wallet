@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { SymbolView } from 'expo-symbols';
 
+import { Icons } from '@/constants/icons';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { PIN_LENGTH, PinMismatch, WrongPin } from '@/domain/pin';
@@ -69,7 +70,7 @@ export function PinScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top + Spacing.six, paddingBottom: insets.bottom }]}>
       <View style={[styles.lock, { backgroundColor: colors.brand }]}>
-        <SymbolView name="lock.fill" tintColor={colors.onBrand} size={28} />
+        <SymbolView name={Icons.lock} tintColor={colors.onBrand} size={28} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <View style={styles.dots}>

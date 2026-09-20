@@ -1,0 +1,18 @@
+import type { CrossPlatformIcon } from './types';
+
+export const Icons = {
+  menu: { ios: 'line.3.horizontal', android: 'menu', web: 'menu' },
+  chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
+  chevronRight: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
+  bell: { ios: 'bell', android: 'notifications', web: 'notifications' },
+  checkmark: { ios: 'checkmark', android: 'check', web: 'check' },
+  lock: { ios: 'lock.fill', android: 'lock', web: 'lock' },
+  shield: { ios: 'shield.fill', android: 'shield', web: 'shield' },
+  mail: { ios: 'envelope.fill', android: 'mail', web: 'mail' },
+  list: { ios: 'list.bullet', android: 'format_list_bulleted', web: 'format_list_bulleted' },
+} as const satisfies Record<string, CrossPlatformIcon>;
+
+export type AppIconName = keyof typeof Icons;
+
+export type HeaderLeftIcon = Extract<AppIconName, 'menu' | 'chevronLeft'>;
+export type HeaderRightIcon = Extract<AppIconName, 'bell' | 'checkmark'>;

@@ -12,6 +12,7 @@ type AuthContextValue = {
   unlock: (pin: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  updateProfile: (firstName: string, lastName: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -56,6 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async register(email, password) {
         setSession(await authUseCases.register.execute(email, password));
+      },
+      async updateProfile(firstName, lastName) {
+        setSession(await authUseCases.updateProfile.execute(firstName, lastName));
       },
       async logout() {
         await authUseCases.logout.execute();

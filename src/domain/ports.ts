@@ -22,6 +22,10 @@ export interface AuthApi {
   refresh(refreshToken: string): Promise<Session>;
   logout(refreshToken: string): Promise<void>;
   me(accessToken: string): Promise<Session['user']>;
+  updateProfile(
+    accessToken: string,
+    profile: { firstName: string; lastName: string },
+  ): Promise<Session['user']>;
 }
 
 export class AuthApiError extends Error {

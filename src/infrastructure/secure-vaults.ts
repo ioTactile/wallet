@@ -24,7 +24,16 @@ export class SecureSessionVault implements SessionVault {
 
   async get(): Promise<Session | null> {
     const raw = await this.secrets.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Session;
+    return {
+      ...parsed,
+      user: {
+        ...parsed.user,
+        firstName: parsed.user.firstName ?? '',
+        lastName: parsed.user.lastName ?? '',
+      },
+    };
   }
 
   async save(session: Session): Promise<void> {

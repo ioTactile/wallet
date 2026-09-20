@@ -3,7 +3,7 @@ import { describe, expect, it } from '@jest/globals';
 import { AuthApiError } from '@/domain/ports';
 import { PinMismatch, WrongPin } from '@/domain/pin';
 
-import { LoginAccount, LogoutAccount, RegisterAccount } from './authenticate';
+import { LoginAccount, LogoutAccount, RegisterAccount, UpdateAccountProfile } from './authenticate';
 import { CreatePin } from './create-pin';
 import { FakeAuthApi, FakePinHasher, InMemoryPinVault, InMemorySessionVault } from './fakes';
 import { VerifyPin } from './verify-pin';
@@ -44,5 +44,20 @@ describe('API session', () => {
     await expect(new LoginAccount(api, sessions).execute('jordan@example.com', 'wrongpass')).rejects.toBeInstanceOf(
       AuthApiError,
     );
+  });
+
+  it('updates first and last name and persists the session', async () => {
+    const api = new FakeAuthApi();
+    const sessions = new InMemorySessionVault();
+    await new RegisterAccount(api, sessions).execute('jordan@example.com', 'longenough');
+
+    const session = await new UpdateAccountProfile(api, sessions).execute('Jordan', 'Dupont');
+    expect(session.user).toEqual({
+      id: 'user-1',
+      email: 'jordan@example.com',
+      firstName: 'Jordan',
+      lastName: 'Dupont',
+    });
+    expect(await sessions.get()).toEqual(session);
   });
 });

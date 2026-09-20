@@ -3,7 +3,7 @@ import { ExpoPinHasher } from '@/infrastructure/expo-pin-hasher';
 import { secretStore } from '@/infrastructure/expo-secret-store';
 import { SecurePinVault, SecureSessionVault } from '@/infrastructure/secure-vaults';
 
-import { HydrateAuth, LoginAccount, LogoutAccount, RegisterAccount } from './authenticate';
+import { HydrateAuth, LoginAccount, LogoutAccount, RegisterAccount, UpdateAccountProfile } from './authenticate';
 import { CreatePin } from './create-pin';
 import { VerifyPin } from './verify-pin';
 
@@ -20,5 +20,6 @@ export const authUseCases = {
   register: new RegisterAccount(authApi, sessionVault),
   login: new LoginAccount(authApi, sessionVault),
   logout: new LogoutAccount(authApi, sessionVault),
+  updateProfile: new UpdateAccountProfile(authApi, sessionVault),
   hydrate: new HydrateAuth(pinVault, sessionVault),
 };

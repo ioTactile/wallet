@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "wallet-react-native",
-    "slug": "wallet-react-native",
+    "name": "mobile",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "walletreactnative",
+    "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",

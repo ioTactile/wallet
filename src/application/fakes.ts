@@ -41,13 +41,13 @@ export class FakePinHasher implements PinHasher {
 }
 
 export class FakeAuthApi implements AuthApi {
-  users = new Map<string, { password: string; id: string }>();
+  users = new Map<string, { password: string; id: string; firstName: string; lastName: string }>();
 
   async register(email: string, password: string): Promise<Session> {
     if (this.users.has(email)) {
       throw new AuthApiError('email_already_taken');
     }
-    this.users.set(email, { password, id: 'user-1' });
+    this.users.set(email, { password, id: 'user-1', firstName: '', lastName: '' });
     return this.session(email);
   }
 
@@ -65,13 +65,39 @@ export class FakeAuthApi implements AuthApi {
 
   async logout(): Promise<void> {}
 
-  async me(): Promise<Session['user']> {
-    return { id: 'user-1', email: 'jordan@example.com' };
+  async me(accessToken: string): Promise<Session['user']> {
+    void accessToken;
+    return { id: 'user-1', email: 'jordan@example.com', firstName: '', lastName: '' };
+  }
+
+  async updateProfile(
+    accessToken: string,
+    profile: { firstName: string; lastName: string },
+  ): Promise<Session['user']> {
+    void accessToken;
+    const entry = [...this.users.values()][0];
+    if (!entry) {
+      throw new AuthApiError('unauthorized');
+    }
+    entry.firstName = profile.firstName;
+    entry.lastName = profile.lastName;
+    return {
+      id: entry.id,
+      email: [...this.users.keys()][0]!,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+    };
   }
 
   private session(email: string): Session {
+    const user = this.users.get(email)!;
     return {
-      user: { id: 'user-1', email },
+      user: {
+        id: user.id,
+        email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
       accessToken: 'access',
       refreshToken: 'refresh',
     };

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { Icons } from '@/constants/icons';
 import { Colors, Spacing } from '@/constants/theme';
 
 export function WelcomeScreen() {
@@ -16,7 +17,7 @@ export function WelcomeScreen() {
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.hero, { backgroundColor: colors.brand, paddingTop: insets.top + Spacing.six }]}>
         <View style={styles.badge}>
-          <SymbolView name="shield.fill" tintColor={colors.brand} size={36} />
+          <SymbolView name={Icons.shield} tintColor={colors.brand} size={36} />
         </View>
       </View>
 
@@ -26,7 +27,7 @@ export function WelcomeScreen() {
         <Pressable
           style={[styles.button, { backgroundColor: colors.brand }]}
           onPress={() => router.push('/sign-in')}>
-          <SymbolView name="envelope.fill" tintColor={colors.onBrand} size={18} />
+          <SymbolView name={Icons.mail} tintColor={colors.onBrand} size={18} />
           <Text style={[styles.buttonLabel, { color: colors.onBrand }]}>{t('welcome.email')}</Text>
         </Pressable>
 

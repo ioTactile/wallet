@@ -1,4 +1,5 @@
 import type { AuthApi, SessionVault } from '@/domain/ports';
+import { AuthApiError } from '@/domain/ports';
 import type { Session } from '@/domain/session';
 
 export class RegisterAccount {
@@ -51,5 +52,26 @@ export class HydrateAuth {
   async execute(): Promise<{ pinConfigured: boolean; session: Session | null }> {
     const [pin, session] = await Promise.all([this.pins.get(), this.sessions.get()]);
     return { pinConfigured: pin !== null, session };
+  }
+}
+
+export class UpdateAccountProfile {
+  constructor(
+    private readonly api: AuthApi,
+    private readonly sessions: SessionVault,
+  ) {}
+
+  async execute(firstName: string, lastName: string): Promise<Session> {
+    const session = await this.sessions.get();
+    if (!session) {
+      throw new AuthApiError('unauthorized');
+    }
+    const user = await this.api.updateProfile(session.accessToken, {
+      firstName,
+      lastName,
+    });
+    const next = { ...session, user };
+    await this.sessions.save(next);
+    return next;
   }
 }
