@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { updateProfileBodySchema, type UpdateProfileBody } from '@wallet/shared';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -20,7 +20,6 @@ export function ProfileScreen() {
   const {
     control,
     handleSubmit,
-    watch,
     formState: { isSubmitting },
   } = useForm<UpdateProfileBody>({
     resolver: zodResolver(updateProfileBodySchema),
@@ -31,7 +30,7 @@ export function ProfileScreen() {
     mode: 'onChange',
   });
 
-  const firstName = watch('firstName');
+  const firstName = useWatch({ control, name: 'firstName', defaultValue: '' });
   const initial =
     firstName.trim().slice(0, 1).toUpperCase() ||
     session?.user.email.slice(0, 1).toUpperCase() ||

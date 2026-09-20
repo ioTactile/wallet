@@ -19,6 +19,16 @@ declare module 'fastify' {
 
 export async function createServer(env: Env): Promise<FastifyInstance> {
   const app = Fastify({ logger: env.NODE_ENV !== 'test' });
+  const parseJson = app.getDefaultJsonParser('error', 'error');
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+    const json = typeof body === 'string' ? body : body.toString();
+    if (json.length === 0) {
+      done(null, null);
+      return;
+    }
+    parseJson(request, json, done);
+  });
 
   await app.register(helmet, {
     crossOriginResourcePolicy: { policy: 'cross-origin' },

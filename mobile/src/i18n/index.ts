@@ -1,6 +1,6 @@
 import { DEFAULT_LOCALE, i18nResources, resolveLocale } from '@wallet/shared';
 import { getLocales } from 'expo-localization';
-import i18n from 'i18next';
+import i18n, { use as applyPlugin } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 export function initI18n() {
@@ -10,7 +10,7 @@ export function initI18n() {
 
   const languageTag = getLocales()[0]?.languageTag;
 
-  void i18n.use(initReactI18next).init({
+  void applyPlugin(initReactI18next).init({
     lng: resolveLocale(languageTag),
     fallbackLng: DEFAULT_LOCALE,
     resources: i18nResources(),

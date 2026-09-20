@@ -5,7 +5,9 @@ const path = require('path');
 const projectRoot = __dirname;
 const config = getDefaultConfig(projectRoot);
 
-config.watchFolders = [path.resolve(projectRoot, '../shared')];
+config.watchFolders = [...(config.watchFolders ?? []), path.resolve(projectRoot, '../shared')];
+
+const defaultResolveRequest = config.resolver.resolveRequest;
 
 // @wallet/shared is TypeScript ESM: "./foo.js" specifiers point at foo.ts sources.
 config.resolver.resolveRequest = (context, moduleName, platform) => {
@@ -17,6 +19,9 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     if (fs.existsSync(tsPath)) {
       return context.resolveRequest(context, `${moduleName.slice(0, -3)}.ts`, platform);
     }
+  }
+  if (defaultResolveRequest) {
+    return defaultResolveRequest(context, moduleName, platform);
   }
   return context.resolveRequest(context, moduleName, platform);
 };

@@ -25,5 +25,19 @@ export function mapError(error: unknown): { status: number; body: { error: strin
       body: { error: error.code },
     };
   }
+  if (isClientHttpError(error)) {
+    return { status: error.statusCode, body: { error: 'invalid_body' } };
+  }
   return { status: 500, body: { error: 'internal_error' } };
+}
+
+function isClientHttpError(error: unknown): error is { statusCode: number } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number' &&
+    error.statusCode >= 400 &&
+    error.statusCode < 500
+  );
 }

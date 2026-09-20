@@ -74,13 +74,13 @@ export class HttpAccountApi implements AccountRepository {
     await this.requestJson(`/accounts/${id}`, { method: 'DELETE' }, { allowEmpty: true });
   }
 
-  private async headers(): Promise<HeadersInit> {
+  private async headers(hasBody: boolean): Promise<HeadersInit> {
     const session = await this.sessions.get();
     if (!session) {
       throw new AccountApiError('unauthorized');
     }
     return {
-      'Content-Type': 'application/json',
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${session.accessToken}`,
     };
   }
@@ -117,7 +117,7 @@ export class HttpAccountApi implements AccountRepository {
     const response = await fetch(`${baseUrl()}${path}`, {
       ...init,
       headers: {
-        ...(await this.headers()),
+        ...(await this.headers(init.body != null)),
         ...init.headers,
       },
     });

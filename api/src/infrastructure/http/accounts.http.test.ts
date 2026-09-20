@@ -162,7 +162,9 @@ describe('accounts HTTP', () => {
       ).json(),
     );
     expect(withArchived.accounts.map((account) => account.id)).toEqual([species?.id, coffre.id]);
-    expect(withArchived.accounts.find((account) => account.id === coffre.id)?.archivedAt).toBeTruthy();
+    expect(
+      withArchived.accounts.find((account) => account.id === coffre.id)?.archivedAt,
+    ).toBeTruthy();
 
     const restored = await app.inject({
       method: 'POST',
@@ -181,7 +183,7 @@ describe('accounts HTTP', () => {
     const deletedExtra = await app.inject({
       method: 'DELETE',
       url: `/accounts/${coffre.id}`,
-      headers: auth,
+      headers: { ...auth, 'content-type': 'application/json' },
     });
     expect(deletedExtra.statusCode).toBe(204);
 

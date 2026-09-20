@@ -35,9 +35,11 @@ describe('HttpAccountApi', () => {
     process.env.EXPO_PUBLIC_API_URL = originalUrl;
   });
 
-  function authStub(refresh: () => Promise<typeof SESSION> = async () => {
-    throw new AuthApiError('invalid_refresh_token');
-  }) {
+  function authStub(
+    refresh: () => Promise<typeof SESSION> = async () => {
+      throw new AuthApiError('invalid_refresh_token');
+    },
+  ) {
     return { refresh: jest.fn(refresh) };
   }
 
@@ -146,7 +148,10 @@ describe('HttpAccountApi', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       4,
       `http://api.test/accounts/${cash.id}`,
-      expect.objectContaining({ method: 'DELETE' }),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: expect.not.objectContaining({ 'Content-Type': 'application/json' }),
+      }),
     );
   });
 
