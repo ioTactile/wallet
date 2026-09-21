@@ -8,6 +8,15 @@ import { HomeMenuSidebar } from '@/components/home-menu-sidebar';
 import { Spacing } from '@/constants/theme';
 import { dataScreenStatus, homeAccountGridItems } from '@/screens/accounts/accounts-view-model';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
+import { ExpensesStructureCard } from '@/screens/home/expenses-structure-card';
+import {
+  DEFAULT_EXPENSE_FILTER,
+  DEFAULT_EXPENSE_PERIOD,
+  expensePeriodRange,
+  previousExpensePeriodRange,
+  type ExpenseStructureFilter,
+  type ExpenseStructurePeriod,
+} from '@/screens/home/expenses-structure-view-model';
 import { HomeAccountsCard } from '@/screens/home/home-accounts-card';
 import { LastRecordsCard } from '@/screens/home/last-records-card';
 import { recordDetailHref, recordsListHref } from '@/screens/records/records-navigation';
@@ -22,14 +31,28 @@ export function HomeScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [expensePeriod, setExpensePeriod] =
+    useState<ExpenseStructurePeriod>(DEFAULT_EXPENSE_PERIOD);
+  const [expenseFilter, setExpenseFilter] =
+    useState<ExpenseStructureFilter>(DEFAULT_EXPENSE_FILTER);
   const query = useAccountList();
-  const range = useMemo(() => lastThirtyDaysRange(new Date()), []);
+  const now = useMemo(() => new Date(), []);
+  const range = useMemo(() => lastThirtyDaysRange(now), [now]);
   const recordsQuery = useRecordList(range);
+  const expensesRange = useMemo(() => expensePeriodRange(expensePeriod, now), [expensePeriod, now]);
+  const previousRange = useMemo(
+    () => previousExpensePeriodRange(expensePeriod, now),
+    [expensePeriod, now],
+  );
+  const expensesQuery = useRecordList(expensesRange);
+  const previousExpensesQuery = useRecordList(previousRange);
   const status = dataScreenStatus({ data: query.data, error: query.error });
   const recordsStatus = dataScreenStatus({
     data: recordsQuery.data?.records,
     error: recordsQuery.error,
   });
+  const expensesStatus =
+    expensesQuery.data === undefined ? (expensesQuery.error ? 'error' : 'loading') : 'content';
   const items = homeAccountGridItems(query.data ?? []);
   const lastRows = lastRecordsPreview(recordsQuery.data?.records ?? [], query.data ?? [], (id) =>
     t(id, { ns: 'category' }),
@@ -58,6 +81,20 @@ export function HomeScreen() {
           onAddAccount={() => router.push('/accounts/new')}
           onAccountPress={(id) => router.push(`/accounts/${id}`)}
           onOpenRecords={() => router.push(recordsListHref())}
+        />
+        <ExpensesStructureCard
+          key={`${expensePeriod}:${expenseFilter}`}
+          status={expensesStatus}
+          records={expensesQuery.data?.records ?? []}
+          previousRecords={previousExpensesQuery.data?.records ?? []}
+          accounts={query.data ?? []}
+          period={expensePeriod}
+          filter={expenseFilter}
+          onRetry={() => expensesQuery.refetch()}
+          onSaveConfig={({ period, filter }) => {
+            setExpensePeriod(period);
+            setExpenseFilter(filter);
+          }}
         />
         <LastRecordsCard
           status={recordsStatus}
