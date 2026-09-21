@@ -11,6 +11,7 @@ import {
   defaultCashFormValues,
   detailScreenStatus,
   hasUnsavedAccountChanges,
+  homeAccountGridItems,
   bankCallbackConnectionId,
   lastSyncedLabel,
   toAccountRow,
@@ -31,6 +32,18 @@ describe('accounts view-model', () => {
       kind: 'cash',
     });
     expect(toAccountRow(makeBankAccount()).subtitle).toBe('FR76 •••• 0185');
+  });
+
+  it('lays home accounts in a grid that always ends with add-account', () => {
+    const items = homeAccountGridItems([makeCashAccount(), makeBankAccount()]);
+    expect(items).toHaveLength(3);
+    expect(items[0]).toMatchObject({ type: 'account', row: { kind: 'cash', name: 'Espèces' } });
+    expect(items[1]).toMatchObject({ type: 'account', row: { kind: 'bank' } });
+    expect(items[2]).toEqual({ type: 'add' });
+    expect(homeAccountGridItems([])).toEqual([{ type: 'add' }]);
+    expect(
+      homeAccountGridItems([makeCashAccount({ archivedAt: '2026-09-20T10:00:00.000Z' })]),
+    ).toEqual([{ type: 'add' }]);
   });
 
   it('derives loading, error, empty and content for a list', () => {

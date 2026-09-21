@@ -85,6 +85,15 @@ export function toAccountRow(account: Account): AccountRowVm {
   };
 }
 
+export type HomeAccountGridItem = { type: 'account'; row: AccountRowVm } | { type: 'add' };
+
+export function homeAccountGridItems(accounts: readonly Account[]): HomeAccountGridItem[] {
+  const rows = accounts
+    .filter((account) => account.archivedAt == null)
+    .map((account) => ({ type: 'account' as const, row: toAccountRow(account) }));
+  return [...rows, { type: 'add' }];
+}
+
 export function defaultCashFormValues(): CashAccountFormValues {
   return {
     name: '',

@@ -15,7 +15,10 @@ import {
   canSubmitRecordEdit,
   destinationAccounts,
   draftForKind,
+  formatRecordDay,
   groupRecordsByWeek,
+  lastRecordsPreview,
+  lastThirtyDaysRange,
   periodRange,
   recordUpdateBody,
   toRecordEditDraft,
@@ -32,6 +35,34 @@ describe('records view-model', () => {
     expect(periodRange('week', NOW).from).toBe(new Date(2026, 8, 21).toISOString());
     expect(periodRange('month', NOW).from).toBe(new Date(2026, 8, 1).toISOString());
     expect(periodRange('year', NOW).from).toBe(new Date(2026, 0, 1).toISOString());
+  });
+
+  it('computes a rolling last-30-days window in local time', () => {
+    expect(lastThirtyDaysRange(NOW)).toEqual({
+      from: new Date(2026, 7, 22).toISOString(),
+      to: new Date(2026, 8, 21, 23, 59, 59, 999).toISOString(),
+    });
+  });
+
+  it('keeps the five most recent records and formats the day label', () => {
+    const cash = makeCashAccount({ id: CASH_ID, name: 'Espèces' });
+    const records = [0, 1, 2, 3, 4, 5].map((offset) =>
+      makeExpenseRecord({
+        id: `11111111-1111-4111-8111-11111111111${offset}`,
+        bookedAt: new Date(2026, 8, 21 - offset, 10, 0, 0).toISOString(),
+        amountCents: 100 + offset,
+      }),
+    );
+    const preview = lastRecordsPreview(records, [cash], () => 'Courses');
+    expect(preview).toHaveLength(5);
+    expect(preview.map((row) => row.id)).toEqual([
+      '11111111-1111-4111-8111-111111111110',
+      '11111111-1111-4111-8111-111111111111',
+      '11111111-1111-4111-8111-111111111112',
+      '11111111-1111-4111-8111-111111111113',
+      '11111111-1111-4111-8111-111111111114',
+    ]);
+    expect(formatRecordDay(records[0].bookedAt, 'fr')).toMatch(/21/);
   });
 
   it('maps an expense row with a signed amount and category color', () => {

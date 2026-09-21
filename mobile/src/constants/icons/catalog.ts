@@ -14,6 +14,8 @@ export const Icons = {
   trash: { ios: 'trash', android: 'delete', web: 'delete' },
   close: { ios: 'xmark', android: 'close', web: 'close' },
   transfer: { ios: 'arrow.left.arrow.right', android: 'swap_horiz', web: 'swap_horiz' },
+  bank: { ios: 'building.columns.fill', android: 'account_balance', web: 'account_balance' },
+  cash: { ios: 'banknote.fill', android: 'payments', web: 'payments' },
 } as const satisfies Record<string, CrossPlatformIcon>;
 
 export type AppIconName = keyof typeof Icons;

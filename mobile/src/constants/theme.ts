@@ -4,20 +4,20 @@
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    brand: '#00C853',
-    action: '#3B82F6',
-    danger: '#FF5A6A',
-    onBrand: '#FFFFFF',
+    text: '#000000', // black
+    background: '#ffffff', // white
+    brand: '#00C853', // green
+    action: '#3B82F6', // blue
+    danger: '#FF5A6A', // red
+    onBrand: '#FFFFFF', // white
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    brand: '#00C853',
-    action: '#3B82F6',
-    danger: '#FF5A6A',
-    onBrand: '#FFFFFF',
+    text: '#ffffff', // white
+    background: '#000000', // black
+    brand: '#00C853', // green
+    action: '#3B82F6', // blue
+    danger: '#FF5A6A', // red
+    onBrand: '#FFFFFF', // white
   },
 } as const;
 

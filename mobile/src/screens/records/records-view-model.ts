@@ -35,6 +35,34 @@ export type RecordWeekSectionVm = {
   rows: RecordRowVm[];
 };
 
+export const LAST_RECORDS_PREVIEW_LIMIT = 5;
+
+export function lastThirtyDaysRange(now: Date): { from: string; to: string } {
+  return {
+    from: startOfDay(addDays(now, -30)).toISOString(),
+    to: endOfDay(now).toISOString(),
+  };
+}
+
+export function lastRecordsPreview(
+  records: readonly WalletRecord[],
+  accounts: readonly Account[],
+  categoryTitle: (id: string) => string,
+  limit = LAST_RECORDS_PREVIEW_LIMIT,
+): RecordRowVm[] {
+  return [...records]
+    .sort(
+      (left, right) =>
+        right.bookedAt.localeCompare(left.bookedAt) || right.id.localeCompare(left.id),
+    )
+    .slice(0, limit)
+    .map((record) => toRecordRow(record, accounts, undefined, categoryTitle));
+}
+
+export function formatRecordDay(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(new Date(iso));
+}
+
 export function periodRange(period: RecordPeriod, now: Date): { from: string; to: string } {
   if (period === 'today') {
     return { from: startOfDay(now).toISOString(), to: endOfDay(now).toISOString() };

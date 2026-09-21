@@ -138,6 +138,8 @@ export const UI_MESSAGES = {
     'home.title': 'Accueil',
     'home.accounts': 'Mes comptes',
     'home.records': 'Opérations',
+    'home.lastRecords': 'Dernières opérations',
+    'home.lastRecordsPeriod': '30 derniers jours',
     'home.addAccount': 'Ajouter un compte',
   },
   en: {
@@ -274,6 +276,8 @@ export const UI_MESSAGES = {
     'home.title': 'Home',
     'home.accounts': 'My accounts',
     'home.records': 'Records',
+    'home.lastRecords': 'Last records overview',
+    'home.lastRecordsPeriod': 'Last 30 days',
     'home.addAccount': 'Add account',
   },
 } as const satisfies Record<Locale, Record<string, string>>;

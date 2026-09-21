@@ -16,7 +16,7 @@ export function recordDetailHref(
     fromAccountId?: string;
   },
 ): Href {
-  const params: Record<string, string> = { id };
+  const params: { id: string } & Record<string, string> = { id };
   if (extras) {
     for (const [key, value] of Object.entries(extras)) {
       if (value != null && value.length > 0) {
