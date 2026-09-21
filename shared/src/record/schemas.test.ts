@@ -146,9 +146,22 @@ describe('updateRecordBodySchema', () => {
     expect(updateRecordBodySchema.parse({ note: '  Hello ' })).toEqual({ note: 'Hello' });
   });
 
-  it('rejects an empty body, kind mutation and oversized notes', () => {
+  it('accepts a kind conversion to transfer or ledger', () => {
+    expect(updateRecordBodySchema.parse({ kind: 'transfer', toAccountId: BANK_ID })).toMatchObject({
+      kind: 'transfer',
+      toAccountId: BANK_ID,
+    });
+    expect(
+      updateRecordBodySchema.parse({ kind: 'expense', categoryId: 'food_drinks.groceries' }),
+    ).toMatchObject({ kind: 'expense', categoryId: 'food_drinks.groceries' });
+  });
+
+  it('rejects an empty body, mismatched conversion fields and oversized notes', () => {
     expect(() => updateRecordBodySchema.parse({})).toThrow();
-    expect(() => updateRecordBodySchema.parse({ kind: 'income' })).toThrow();
+    expect(() =>
+      updateRecordBodySchema.parse({ kind: 'transfer', categoryId: 'food_drinks' }),
+    ).toThrow();
+    expect(() => updateRecordBodySchema.parse({ kind: 'expense', toAccountId: BANK_ID })).toThrow();
     expect(() =>
       updateRecordBodySchema.parse({ note: 'x'.repeat(RECORD_NOTE_MAX_LENGTH + 1) }),
     ).toThrow();

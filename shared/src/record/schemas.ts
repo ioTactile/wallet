@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { DEFAULT_ACCOUNT_CURRENCY } from '../account.js';
 import { getCategory } from '../category/catalog.js';
-import { RECORD_CLEARING, type RecordKind } from '../record.js';
+import { RECORD_CLEARING, RECORD_KINDS, type RecordKind } from '../record.js';
 
 export const RECORD_NOTE_MAX_LENGTH = 500;
 
@@ -97,6 +97,7 @@ export const createRecordBodySchema = z.discriminatedUnion('kind', [
 
 export const updateRecordBodySchema = z
   .object({
+    kind: z.enum(RECORD_KINDS).optional(),
     accountId: z.uuid().optional(),
     categoryId: z.string().min(1).optional(),
     fromAccountId: z.uuid().optional(),
@@ -107,7 +108,52 @@ export const updateRecordBodySchema = z
     note: noteSchema.optional(),
   })
   .strict()
-  .refine((value) => Object.keys(value).length > 0, { message: 'empty update' });
+  .refine((value) => Object.keys(value).length > 0, { message: 'empty update' })
+  .superRefine((value, ctx) => {
+    if (value.kind === 'transfer') {
+      if (value.categoryId != null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Transfers have no category',
+          path: ['categoryId'],
+        });
+      }
+      if (value.accountId != null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Transfers have from/to accounts',
+          path: ['accountId'],
+        });
+      }
+    }
+    if (value.kind === 'expense' || value.kind === 'income') {
+      if (value.fromAccountId != null || value.toAccountId != null) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Expense and income have a single account',
+          path: value.fromAccountId != null ? ['fromAccountId'] : ['toAccountId'],
+        });
+      }
+      if (value.categoryId != null && !categoryMatchesKind(value.categoryId, value.kind)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'categoryId does not match kind',
+          path: ['categoryId'],
+        });
+      }
+    }
+    if (
+      value.fromAccountId != null &&
+      value.toAccountId != null &&
+      value.fromAccountId === value.toAccountId
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'fromAccountId must differ from toAccountId',
+        path: ['toAccountId'],
+      });
+    }
+  });
 
 function splitAccountIds(value: string | undefined): string[] | undefined {
   if (value == null || value.trim() === '') {

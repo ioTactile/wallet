@@ -48,4 +48,20 @@ describe('records', () => {
       code: 'record_not_found',
     });
   });
+
+  it('converts an expense to a transfer toward another account', async () => {
+    const { repo, update } = useCases();
+    repo.records = [makeExpenseRecord()];
+
+    const updated = await update.execute(makeExpenseRecord().id, {
+      kind: 'transfer',
+      toAccountId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    });
+    expect(updated.kind).toBe('transfer');
+    if (updated.kind !== 'transfer') {
+      throw new Error('expected transfer');
+    }
+    expect(updated.fromAccountId).toBe(makeExpenseRecord().accountId);
+    expect(updated.toAccountId).toBe('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+  });
 });

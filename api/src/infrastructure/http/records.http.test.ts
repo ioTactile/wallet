@@ -117,6 +117,28 @@ describe('records HTTP', () => {
     expect(transfer.statusCode).toBe(201);
     expect(recordSchema.parse(transfer.json()).kind).toBe('transfer');
 
+    const converted = await app.inject({
+      method: 'PATCH',
+      url: `/records/${expense.id}`,
+      headers: auth,
+      payload: { kind: 'transfer', toAccountId: bankId },
+    });
+    expect(converted.statusCode).toBe(200);
+    const asTransfer = recordSchema.parse(converted.json());
+    expect(asTransfer.kind).toBe('transfer');
+    if (asTransfer.kind !== 'transfer') throw new Error('expected transfer');
+    expect(asTransfer.fromAccountId).toBe(cash?.id);
+    expect(asTransfer.toAccountId).toBe(bankId);
+
+    const restored = await app.inject({
+      method: 'PATCH',
+      url: `/records/${expense.id}`,
+      headers: auth,
+      payload: { kind: 'expense', categoryId: 'food_drinks.groceries' },
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(recordSchema.parse(restored.json()).kind).toBe('expense');
+
     const blocked = await app.inject({
       method: 'DELETE',
       url: `/accounts/${bankId}`,

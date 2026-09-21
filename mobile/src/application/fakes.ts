@@ -291,7 +291,57 @@ export class InMemoryRecordRepository implements RecordRepository {
 
   async update(id: string, body: UpdateRecordBody): Promise<WalletRecord> {
     const current = await this.getById(id);
-    const next = { ...current, ...body, updatedAt: FAKE_NOW } as WalletRecord;
+    const base = {
+      id: current.id,
+      userId: current.userId,
+      amountCents: body.amountCents ?? current.amountCents,
+      currency: current.currency,
+      bookedAt: body.bookedAt ?? current.bookedAt,
+      clearing: body.clearing ?? current.clearing,
+      note: body.note ?? current.note,
+      createdAt: current.createdAt,
+      updatedAt: FAKE_NOW,
+    };
+    let next: WalletRecord = current;
+    if (body.kind === 'transfer' && current.kind !== 'transfer') {
+      next = {
+        ...base,
+        kind: 'transfer',
+        fromAccountId:
+          current.kind === 'income' ? (body.fromAccountId ?? current.accountId) : current.accountId,
+        toAccountId:
+          current.kind === 'income' ? current.accountId : (body.toAccountId ?? current.accountId),
+      };
+    } else if ((body.kind === 'expense' || body.kind === 'income') && current.kind !== body.kind) {
+      const accountId =
+        current.kind === 'transfer'
+          ? body.kind === 'income'
+            ? current.toAccountId
+            : current.fromAccountId
+          : current.accountId;
+      next = {
+        ...base,
+        kind: body.kind,
+        accountId,
+        categoryId: body.categoryId ?? 'food_drinks',
+      };
+    } else if (current.kind === 'transfer') {
+      next = {
+        ...current,
+        ...base,
+        kind: 'transfer',
+        fromAccountId: body.fromAccountId ?? current.fromAccountId,
+        toAccountId: body.toAccountId ?? current.toAccountId,
+      };
+    } else {
+      next = {
+        ...current,
+        ...base,
+        kind: current.kind,
+        accountId: body.accountId ?? current.accountId,
+        categoryId: body.categoryId ?? current.categoryId,
+      };
+    }
     this.records = this.records.map((record) => (record.id === id ? next : record));
     return next;
   }

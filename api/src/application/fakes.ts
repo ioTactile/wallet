@@ -58,7 +58,9 @@ export class InMemoryRecordRepository implements RecordRepository {
   async findByExternalId(accountId: string, externalId: string): Promise<LedgerRecord | null> {
     return (
       [...this.records.values()].find(
-        (record) => record.accountId === accountId && record.externalId === externalId,
+        (record) =>
+          record.externalId === externalId &&
+          (record.accountId === accountId || record.counterpartyAccountId === accountId),
       ) ?? null
     );
   }

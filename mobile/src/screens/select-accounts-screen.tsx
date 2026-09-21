@@ -8,6 +8,7 @@ import { BrandHeader } from '@/components/brand-header';
 import { NativeSwitch } from '@/components/native-switch';
 import { Colors } from '@/constants/theme';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
+import { recordsListHref } from '@/screens/records/records-navigation';
 
 export function SelectAccountsScreen() {
   const { t } = useTranslation();
@@ -35,10 +36,7 @@ export function SelectAccountsScreen() {
 
   function confirm() {
     const accountIds = allSelected ? undefined : [...selected].join(',');
-    router.navigate({
-      pathname: '/records',
-      params: accountIds ? { accountIds } : {},
-    });
+    router.dismissTo(recordsListHref(accountIds));
   }
 
   return (
@@ -47,7 +45,7 @@ export function SelectAccountsScreen() {
         title={t('record.selectAccounts')}
         leftIcon="chevronLeft"
         rightIcon="checkmark"
-        onLeftPress={() => router.back()}
+        onLeftPress={() => router.dismiss()}
         onRightPress={confirm}
       />
       <Host matchContents>

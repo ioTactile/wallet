@@ -12,18 +12,31 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
+import { newRecordHref, recordDetailHref } from '@/screens/records/records-navigation';
 
 export function CategoryPickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { kind: kindParam } = useLocalSearchParams<{ kind?: string }>();
+  const { kind: kindParam, recordId } = useLocalSearchParams<{
+    kind?: string;
+    recordId?: string;
+  }>();
   const kind: RecordKind = kindParam === 'income' ? 'income' : 'expense';
   const allowed = new Set(categoriesFor(kind).map((category) => category.id));
   const roots = listRoots().filter((category) => allowed.has(category.id));
   const colors = Colors.light;
 
   function select(id: string) {
-    router.navigate({ pathname: '/records/new', params: { kind, categoryId: id } });
+    if (typeof recordId === 'string' && recordId.length > 0) {
+      router.dismissTo(
+        recordDetailHref(recordId, {
+          categoryId: id,
+          kind,
+        }),
+      );
+      return;
+    }
+    router.dismissTo(newRecordHref({ kind, categoryId: id }));
   }
 
   return (
@@ -31,7 +44,7 @@ export function CategoryPickerScreen() {
       <BrandHeader
         title={t('record.category')}
         leftIcon="chevronLeft"
-        onLeftPress={() => router.back()}
+        onLeftPress={() => router.dismiss()}
       />
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.body}>
         <Text style={styles.section}>{t('record.allCategories')}</Text>

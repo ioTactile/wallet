@@ -170,6 +170,58 @@ describe('record use cases', () => {
     expect((await get.execute(USER_ID, record.id)).note).toBe('Amazon');
   });
 
+  it('converts an expense to a transfer and back to an expense', async () => {
+    const { createAccount, create, update, list } = setup();
+    const cash = await createAccount.execute(USER_ID, { kind: 'cash', name: 'Espèces' });
+    const bank = await createAccount.execute(USER_ID, { kind: 'bank', name: 'CIC' });
+    const record = await create.execute(USER_ID, {
+      kind: 'expense',
+      accountId: cash.id,
+      categoryId: 'food_drinks',
+      amountCents: 199,
+    });
+
+    const transfer = await update.execute(USER_ID, record.id, {
+      kind: 'transfer',
+      toAccountId: bank.id,
+    });
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe(cash.id);
+    expect(transfer.counterpartyAccountId).toBe(bank.id);
+    expect(transfer.categoryId).toBeNull();
+
+    const all = await list.execute(USER_ID, { from: FROM, to: TO });
+    expect(all.periodNetCents).toBe(0);
+
+    const restored = await update.execute(USER_ID, record.id, {
+      kind: 'expense',
+      categoryId: 'food_drinks.groceries',
+    });
+    expect(restored.kind).toBe('expense');
+    expect(restored.accountId).toBe(cash.id);
+    expect(restored.categoryId).toBe('food_drinks.groceries');
+  });
+
+  it('converts income to a transfer incoming onto the original account', async () => {
+    const { createAccount, create, update } = setup();
+    const cash = await createAccount.execute(USER_ID, { kind: 'cash', name: 'Espèces' });
+    const bank = await createAccount.execute(USER_ID, { kind: 'bank', name: 'CIC' });
+    const record = await create.execute(USER_ID, {
+      kind: 'income',
+      accountId: cash.id,
+      categoryId: 'income.refunds',
+      amountCents: 500,
+    });
+
+    const transfer = await update.execute(USER_ID, record.id, {
+      kind: 'transfer',
+      fromAccountId: bank.id,
+    });
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe(bank.id);
+    expect(transfer.counterpartyAccountId).toBe(cash.id);
+  });
+
   it('hides records of other users and rejects empty updates on missing ids', async () => {
     const { createAccount, create, get, remove } = setup();
     const cash = await createAccount.execute(USER_ID, { kind: 'cash', name: 'Espèces' });

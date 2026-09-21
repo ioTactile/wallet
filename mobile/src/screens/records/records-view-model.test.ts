@@ -1,17 +1,30 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { makeCashAccount, makeExpenseRecord } from '@/application/fakes';
+import {
+  makeBankAccount,
+  makeCashAccount,
+  makeExpenseRecord,
+  makeTransferRecord,
+} from '@/application/fakes';
 
 import {
+  applyRecordEditParams,
   appendCalculatorKey,
   calculatorCents,
   canSubmitCalculator,
+  canSubmitRecordEdit,
+  destinationAccounts,
+  draftForKind,
   groupRecordsByWeek,
   periodRange,
+  recordUpdateBody,
+  toRecordEditDraft,
   toRecordRow,
 } from './records-view-model';
 
 const NOW = new Date(2026, 8, 21, 12, 0, 0);
+const CASH_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const BANK_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
 describe('records view-model', () => {
   it('computes local period bounds for today, week, month and year', () => {
@@ -67,5 +80,55 @@ describe('records view-model', () => {
     expect(calculatorCents(buffer)).toBe(7640);
     expect(canSubmitCalculator(buffer)).toBe(true);
     expect(canSubmitCalculator('')).toBe(false);
+  });
+
+  it('builds an update body to recategorize, convert to a transfer and back', () => {
+    const expense = makeExpenseRecord();
+    const recategorize = recordUpdateBody(expense, {
+      ...toRecordEditDraft(expense),
+      categoryId: 'shopping.home_garden',
+    });
+    expect(recategorize).toEqual({ categoryId: 'shopping.home_garden' });
+
+    const asTransfer = recordUpdateBody(expense, {
+      kind: 'transfer',
+      categoryId: null,
+      otherAccountId: BANK_ID,
+      note: expense.note,
+      uncleared: false,
+    });
+    expect(asTransfer).toEqual({ kind: 'transfer', toAccountId: BANK_ID });
+
+    const transfer = makeTransferRecord();
+    const asExpense = recordUpdateBody(transfer, {
+      kind: 'expense',
+      categoryId: 'food_drinks.groceries',
+      otherAccountId: transfer.toAccountId,
+      note: transfer.note,
+      uncleared: false,
+    });
+    expect(asExpense).toEqual({ kind: 'expense', categoryId: 'food_drinks.groceries' });
+    expect(canSubmitRecordEdit(expense, { ...toRecordEditDraft(expense), kind: 'transfer' })).toBe(
+      false,
+    );
+  });
+
+  it('lists destination accounts and resets the category when switching kind', () => {
+    const cash = makeCashAccount({ id: CASH_ID });
+    const bank = makeBankAccount({ id: BANK_ID });
+    expect(destinationAccounts([cash, bank], CASH_ID).map((account) => account.id)).toEqual([
+      BANK_ID,
+    ]);
+
+    const expense = makeExpenseRecord();
+    const draft = draftForKind(toRecordEditDraft(expense), 'income');
+    expect(draft.kind).toBe('income');
+    expect(draft.categoryId).toBe('income');
+    expect(
+      applyRecordEditParams(toRecordEditDraft(expense), {
+        kind: 'transfer',
+        toAccountId: BANK_ID,
+      }),
+    ).toMatchObject({ kind: 'transfer', otherAccountId: BANK_ID });
   });
 });

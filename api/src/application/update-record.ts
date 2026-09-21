@@ -32,20 +32,20 @@ export class UpdateRecord {
         input.amountCents != null ||
         input.bookedAt != null ||
         input.accountId != null ||
-        input.fromAccountId != null ||
-        input.toAccountId != null ||
         input.clearing != null
       ) {
         throw new CannotMutateAisRecord();
       }
     }
 
-    if (record.kind === 'transfer') {
+    if (input.kind != null && input.kind !== record.kind) {
+      next = await this.convertKind(userId, next, input, now);
+    } else if (next.kind === 'transfer') {
       if (input.categoryId != null || input.accountId != null) {
         throw new InvalidRecord('Transfers have no category or single account');
       }
-      const fromId = input.fromAccountId ?? record.accountId;
-      const toId = input.toAccountId ?? record.counterpartyAccountId;
+      const fromId = input.fromAccountId ?? next.accountId;
+      const toId = input.toAccountId ?? next.counterpartyAccountId;
       if (toId == null) {
         throw new InvalidRecord('Transfers require a destination account');
       }
@@ -85,6 +85,31 @@ export class UpdateRecord {
 
     await this.records.save(next);
     return next;
+  }
+
+  private async convertKind(
+    userId: string,
+    record: LedgerRecord,
+    input: UpdateRecordBody,
+    now: Date,
+  ): Promise<LedgerRecord> {
+    if (input.kind === 'transfer') {
+      const otherId = record.kind === 'income' ? input.fromAccountId : input.toAccountId;
+      if (otherId == null) {
+        throw new InvalidRecord('Transfers require a destination account');
+      }
+      await this.requireActiveAccount(userId, record.accountId);
+      await this.requireActiveAccount(userId, otherId);
+      return record.convertToTransfer(otherId, now);
+    }
+
+    if (input.kind !== 'expense' && input.kind !== 'income') {
+      throw new InvalidRecord('Invalid kind');
+    }
+    if (input.categoryId == null) {
+      throw new InvalidRecord('Category is required');
+    }
+    return record.convertToLedger(input.kind, input.categoryId, now);
   }
 
   private async requireActiveAccount(userId: string, accountId: string): Promise<Account> {

@@ -6,6 +6,7 @@ import {
   type Record as WalletRecord,
   type RecordKind,
   type RecordsResponse,
+  type UpdateRecordBody,
 } from '@wallet/shared';
 
 import { formatMoney, parseEurosToCents } from '@/domain/money';
@@ -164,6 +165,140 @@ export function canSubmitCalculator(buffer: string): boolean {
 
 export function defaultCategoryId(kind: RecordKind): string | null {
   return categoriesFor(kind)[0]?.id ?? null;
+}
+
+export type RecordEditDraft = {
+  kind: RecordKind;
+  categoryId: string | null;
+  otherAccountId: string | null;
+  note: string;
+  uncleared: boolean;
+};
+
+export function toRecordEditDraft(record: WalletRecord): RecordEditDraft {
+  if (record.kind === 'transfer') {
+    return {
+      kind: 'transfer',
+      categoryId: null,
+      otherAccountId: record.toAccountId,
+      note: record.note,
+      uncleared: record.clearing === 'uncleared',
+    };
+  }
+  return {
+    kind: record.kind,
+    categoryId: record.categoryId,
+    otherAccountId: null,
+    note: record.note,
+    uncleared: record.clearing === 'uncleared',
+  };
+}
+
+export function applyRecordEditParams(
+  draft: RecordEditDraft,
+  params: {
+    kind?: string;
+    categoryId?: string;
+    toAccountId?: string;
+    fromAccountId?: string;
+  },
+): RecordEditDraft {
+  let next = draft;
+  if (params.kind === 'expense' || params.kind === 'income' || params.kind === 'transfer') {
+    next = draftForKind(next, params.kind);
+  }
+  if (params.categoryId != null && params.categoryId.length > 0) {
+    next = { ...next, categoryId: params.categoryId };
+  }
+  const otherAccountId =
+    (params.toAccountId != null && params.toAccountId.length > 0 && params.toAccountId) ||
+    (params.fromAccountId != null && params.fromAccountId.length > 0 && params.fromAccountId) ||
+    null;
+  if (otherAccountId) {
+    next = { ...next, otherAccountId, kind: 'transfer' };
+  }
+  return next;
+}
+
+export function draftForKind(draft: RecordEditDraft, kind: RecordKind): RecordEditDraft {
+  if (kind === draft.kind) {
+    return draft;
+  }
+  if (kind === 'transfer') {
+    return { ...draft, kind, categoryId: null };
+  }
+  const keepCategory =
+    draft.categoryId != null && getCategory(draft.categoryId)?.kind === kind
+      ? draft.categoryId
+      : defaultCategoryId(kind);
+  return { ...draft, kind, categoryId: keepCategory };
+}
+
+export function destinationAccounts(
+  accounts: readonly Account[],
+  sourceAccountId: string,
+): Account[] {
+  return accounts.filter((account) => account.id !== sourceAccountId && account.archivedAt == null);
+}
+
+export function recordSourceAccountId(record: WalletRecord): string {
+  return record.kind === 'transfer' ? record.fromAccountId : record.accountId;
+}
+
+export function canSubmitRecordEdit(record: WalletRecord, draft: RecordEditDraft): boolean {
+  if (draft.kind === 'transfer') {
+    const sourceId =
+      record.kind === 'income' ? draft.otherAccountId : recordSourceAccountId(record);
+    const destId = record.kind === 'income' ? record.accountId : draft.otherAccountId;
+    return sourceId != null && destId != null && sourceId !== destId;
+  }
+  return draft.categoryId != null && draft.categoryId.length > 0;
+}
+
+export function recordUpdateBody(
+  record: WalletRecord,
+  draft: RecordEditDraft,
+): UpdateRecordBody | null {
+  if (!canSubmitRecordEdit(record, draft)) {
+    return null;
+  }
+  const body: UpdateRecordBody = {};
+  const note = draft.note.trim();
+  if (note !== record.note) {
+    body.note = note;
+  }
+  const clearing = draft.uncleared ? 'uncleared' : 'cleared';
+  if (clearing !== record.clearing) {
+    body.clearing = clearing;
+  }
+
+  if (draft.kind !== record.kind) {
+    if (draft.kind === 'transfer') {
+      body.kind = 'transfer';
+      if (record.kind === 'income') {
+        body.fromAccountId = draft.otherAccountId ?? undefined;
+      } else {
+        body.toAccountId = draft.otherAccountId ?? undefined;
+      }
+    } else {
+      body.kind = draft.kind;
+      if (draft.categoryId != null) {
+        body.categoryId = draft.categoryId;
+      }
+    }
+  } else if (record.kind === 'transfer' && draft.otherAccountId !== record.toAccountId) {
+    if (draft.otherAccountId != null) {
+      body.toAccountId = draft.otherAccountId;
+    }
+  } else if (
+    record.kind !== 'transfer' &&
+    draft.categoryId != null &&
+    draft.categoryId !== record.categoryId
+  ) {
+    body.categoryId = draft.categoryId;
+  }
+
+  return Object.keys(body).length === 0 ? null : body;
 }
 
 export function cashAccounts(accounts: readonly Account[]): Account[] {

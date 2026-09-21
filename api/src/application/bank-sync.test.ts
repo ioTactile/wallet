@@ -173,4 +173,27 @@ describe('bank connection use cases', () => {
       CannotDeleteAisRecord,
     );
   });
+
+  it('converts an AIS expense to a transfer and still matches it on the next sync', async () => {
+    const { start, complete, createAccount, records, update, sync } = setup();
+    const cash = await createAccount.execute(USER_ID, { kind: 'cash', name: 'Espèces' });
+    const started = await start.execute(USER_ID, REDIRECT);
+    const [bank] = await complete.execute(USER_ID, started.id);
+    const ais = (await records.listByUser(USER_ID)).find((record) => record.note === 'Carrefour')!;
+
+    const transfer = await update.execute(USER_ID, ais.id, {
+      kind: 'transfer',
+      toAccountId: cash.id,
+    });
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe(bank!.id);
+    expect(transfer.counterpartyAccountId).toBe(cash.id);
+    expect(transfer.externalId).toBe(ais.externalId);
+
+    const synced = await sync.execute(USER_ID, bank!.id);
+    expect(synced.importedCount).toBe(0);
+    const kept = await records.getById(ais.id);
+    expect(kept?.kind).toBe('transfer');
+    expect(kept?.counterpartyAccountId).toBe(cash.id);
+  });
 });

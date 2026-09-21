@@ -18,7 +18,12 @@ export class DrizzleRecordRepository implements RecordRepository {
     const rows = await this.db
       .select()
       .from(records)
-      .where(and(eq(records.accountId, accountId), eq(records.externalId, externalId)))
+      .where(
+        and(
+          eq(records.externalId, externalId),
+          or(eq(records.accountId, accountId), eq(records.counterpartyAccountId, accountId)),
+        ),
+      )
       .limit(1);
     return rows[0] ? toRecord(rows[0]) : null;
   }

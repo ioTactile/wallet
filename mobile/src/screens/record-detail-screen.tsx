@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
@@ -20,6 +20,16 @@ import { formatMoney } from '@/domain/money';
 import { RecordApiError } from '@/domain/ports';
 import { detailScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
+import { recordsListHref } from '@/screens/records/records-navigation';
+import {
+  applyRecordEditParams,
+  canSubmitRecordEdit,
+  draftForKind,
+  recordSourceAccountId,
+  recordUpdateBody,
+  toRecordEditDraft,
+  type RecordEditDraft,
+} from '@/screens/records/records-view-model';
 import { useDeleteRecord, useRecord, useUpdateRecord } from '@/screens/records/use-record-queries';
 
 type FormValues = {
@@ -30,7 +40,19 @@ type FormValues = {
 export function RecordDetailScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const {
+    id,
+    categoryId: categoryParam,
+    toAccountId: toAccountParam,
+    fromAccountId: fromAccountParam,
+    kind: kindParam,
+  } = useLocalSearchParams<{
+    id: string;
+    categoryId?: string;
+    toAccountId?: string;
+    fromAccountId?: string;
+    kind?: string;
+  }>();
   const recordId = typeof id === 'string' ? id : '';
   const query = useRecord(recordId);
   const accountsQuery = useAccountList();
@@ -40,15 +62,37 @@ export function RecordDetailScreen() {
   const record = query.data;
   const status = detailScreenStatus({ data: record, error: query.error });
   const colors = Colors.light;
-  const { control, handleSubmit, reset } = useForm<FormValues>({
+  const { control, reset, getValues } = useForm<FormValues>({
     defaultValues: { note: '', uncleared: false },
   });
+  const [draft, setDraft] = useState<RecordEditDraft | null>(null);
+  const [seenRecordId, setSeenRecordId] = useState<string | null>(null);
+  const [seenParamKey, setSeenParamKey] = useState('');
+  const paramKey = `${kindParam ?? ''}|${categoryParam ?? ''}|${toAccountParam ?? ''}|${fromAccountParam ?? ''}`;
 
-  useEffect(() => {
-    if (record) {
-      reset({ note: record.note, uncleared: record.clearing === 'uncleared' });
-    }
-  }, [record, reset]);
+  if (record && seenRecordId !== record.id) {
+    setSeenRecordId(record.id);
+    setSeenParamKey(paramKey);
+    setDraft(
+      applyRecordEditParams(toRecordEditDraft(record), {
+        kind: kindParam,
+        categoryId: categoryParam,
+        toAccountId: toAccountParam,
+        fromAccountId: fromAccountParam,
+      }),
+    );
+    reset({ note: record.note, uncleared: record.clearing === 'uncleared' });
+  } else if (record && draft && paramKey !== seenParamKey) {
+    setSeenParamKey(paramKey);
+    setDraft(
+      applyRecordEditParams(draft, {
+        kind: kindParam,
+        categoryId: categoryParam,
+        toAccountId: toAccountParam,
+        fromAccountId: fromAccountParam,
+      }),
+    );
+  }
 
   const confirm = useConfirmSheet({
     copy: () => ({
@@ -59,31 +103,46 @@ export function RecordDetailScreen() {
     }),
     onConfirm: async () => {
       await remove.mutateAsync(recordId);
-      router.back();
+      router.dismissTo(recordsListHref());
     },
   });
 
-  async function save(values: FormValues) {
+  const canSave =
+    record != null && draft != null && canSubmitRecordEdit(record, draft) && !update.isPending;
+
+  async function save() {
+    if (!record || !draft || !canSave) {
+      return;
+    }
+    const values = getValues();
+    const body = recordUpdateBody(record, {
+      ...draft,
+      note: values.note,
+      uncleared: values.uncleared,
+    });
+    if (body == null) {
+      router.dismissTo(recordsListHref());
+      return;
+    }
     setError(null);
     try {
-      await update.mutateAsync({
-        id: recordId,
-        body: { note: values.note, clearing: values.uncleared ? 'uncleared' : 'cleared' },
-      });
-      router.back();
+      await update.mutateAsync({ id: recordId, body });
+      router.dismissTo(recordsListHref());
     } catch (cause) {
       setError(cause instanceof RecordApiError ? t('record.saveError') : t('record.saveError'));
     }
   }
 
-  const accountName =
-    record == null
-      ? ''
-      : record.kind === 'transfer'
-        ? `${accountsQuery.data?.find((account) => account.id === record.fromAccountId)?.name ?? ''} → ${
-            accountsQuery.data?.find((account) => account.id === record.toAccountId)?.name ?? ''
-          }`
-        : (accountsQuery.data?.find((account) => account.id === record.accountId)?.name ?? '');
+  const accounts = accountsQuery.data ?? [];
+  const sourceAccountId = record ? recordSourceAccountId(record) : '';
+  const pickingFrom = record?.kind === 'income' && draft?.kind === 'transfer';
+  const sourceName = accounts.find((account) => account.id === sourceAccountId)?.name ?? '';
+  const otherName =
+    accounts.find((account) => account.id === draft?.otherAccountId)?.name ??
+    t('record.selectAccount');
+  const lockedTransferName = pickingFrom
+    ? (accounts.find((account) => account.id === record?.accountId)?.name ?? '')
+    : sourceName;
 
   return (
     <View style={[styles.root, { backgroundColor: '#F5F5F5' }]}>
@@ -91,8 +150,14 @@ export function RecordDetailScreen() {
         title={t('record.detailTitle')}
         leftIcon="close"
         rightIcon="checkmark"
-        onLeftPress={() => router.back()}
-        onRightPress={handleSubmit(save)}
+        onLeftPress={() => router.dismissTo(recordsListHref())}
+        onRightPress={
+          canSave
+            ? () => {
+                void save();
+              }
+            : undefined
+        }
       />
       {status === 'loading' ? (
         <View style={styles.state}>
@@ -106,15 +171,88 @@ export function RecordDetailScreen() {
           </Text>
         </View>
       ) : null}
-      {status === 'content' && record ? (
+      {status === 'content' && record && draft ? (
         <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={styles.card}>
-            <Text style={styles.label}>{t(`record.${record.kind}`)}</Text>
-            {record.kind !== 'transfer' ? (
-              <Text style={styles.value}>{t(record.categoryId, { ns: 'category' })}</Text>
-            ) : null}
-            <Text style={styles.label}>{t('record.account')}</Text>
-            <Text style={styles.value}>{accountName}</Text>
+            <View style={styles.tabs}>
+              {(['expense', 'income', 'transfer'] as const).map((item) => (
+                <Pressable
+                  key={item}
+                  onPress={() =>
+                    setDraft((current) => (current ? draftForKind(current, item) : current))
+                  }
+                  style={[styles.tab, draft.kind === item && styles.tabActive]}
+                >
+                  <Text style={[styles.tabLabel, draft.kind === item && styles.tabLabelActive]}>
+                    {t(`record.${item}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {draft.kind === 'transfer' ? (
+              <>
+                <Text style={styles.label}>{t('record.fromAccount')}</Text>
+                {pickingFrom ? (
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/records/select-account',
+                        params: {
+                          recordId,
+                          excludeAccountId: record.accountId,
+                          selectedId: draft.otherAccountId ?? '',
+                          field: 'fromAccountId',
+                        },
+                      })
+                    }
+                  >
+                    <Text style={styles.value}>{otherName}</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={styles.value}>{lockedTransferName}</Text>
+                )}
+                <Text style={styles.label}>{t('record.toAccount')}</Text>
+                {pickingFrom ? (
+                  <Text style={styles.value}>{lockedTransferName}</Text>
+                ) : (
+                  <Pressable
+                    onPress={() =>
+                      router.push({
+                        pathname: '/records/select-account',
+                        params: {
+                          recordId,
+                          excludeAccountId: sourceAccountId,
+                          selectedId: draft.otherAccountId ?? '',
+                          field: 'toAccountId',
+                        },
+                      })
+                    }
+                  >
+                    <Text style={styles.value}>{otherName}</Text>
+                  </Pressable>
+                )}
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() =>
+                    router.push({
+                      pathname: '/records/category',
+                      params: { kind: draft.kind, recordId },
+                    })
+                  }
+                >
+                  <Text style={styles.label}>{t('record.category')}</Text>
+                  <Text style={styles.value}>
+                    {draft.categoryId
+                      ? t(draft.categoryId, { ns: 'category' })
+                      : t('record.category')}
+                  </Text>
+                </Pressable>
+                <Text style={styles.label}>{t('record.account')}</Text>
+                <Text style={styles.value}>{sourceName}</Text>
+              </>
+            )}
             <Text style={styles.label}>{t('record.amount')}</Text>
             <Text style={styles.value} selectable>
               {formatMoney(record.amountCents)}
@@ -166,6 +304,17 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
     marginBottom: Spacing.two,
   },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: Spacing.two,
+  },
+  tab: { flex: 1, paddingVertical: Spacing.two, alignItems: 'center', borderRadius: 999 },
+  tabActive: { backgroundColor: Colors.light.action },
+  tabLabel: { color: '#6B7280', fontWeight: '700', fontSize: 13 },
+  tabLabelActive: { color: Colors.light.onBrand },
   label: { color: '#9CA3AF', fontSize: 12 },
   value: { fontSize: 16, marginBottom: Spacing.two },
   input: { fontSize: 16, paddingVertical: Spacing.two },

@@ -9,6 +9,7 @@ import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
 import { RecordApiError } from '@/domain/ports';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
+import { recordsListHref } from '@/screens/records/records-navigation';
 import {
   appendCalculatorKey,
   calculatorCents,
@@ -83,7 +84,7 @@ export function NewRecordScreen() {
           amountCents,
         });
       }
-      router.back();
+      router.dismissTo(recordsListHref());
     } catch (cause) {
       setError(cause instanceof RecordApiError ? t('record.createError') : t('record.createError'));
     }
@@ -96,7 +97,7 @@ export function NewRecordScreen() {
         leftIcon="close"
         rightIcon="checkmark"
         color={colors.action}
-        onLeftPress={() => router.back()}
+        onLeftPress={() => router.dismissTo(recordsListHref())}
         onRightPress={() => {
           void submit();
         }}

@@ -122,6 +122,67 @@ describe('LedgerRecord', () => {
     expect(() => record.moveToAccount('cash-1', later)).toThrow(CannotMutateAisRecord);
   });
 
+  it('converts an expense to a transfer and back with a category', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const transfer = expense().convertToTransfer('bank-1', later);
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe('cash-1');
+    expect(transfer.counterpartyAccountId).toBe('bank-1');
+    expect(transfer.categoryId).toBeNull();
+
+    const restored = transfer.convertToLedger('expense', 'food_drinks.groceries', later);
+    expect(restored.kind).toBe('expense');
+    expect(restored.accountId).toBe('cash-1');
+    expect(restored.counterpartyAccountId).toBeNull();
+    expect(restored.categoryId).toBe('food_drinks.groceries');
+  });
+
+  it('converts income to a transfer from another account so the original stays the destination', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const income = LedgerRecord.createIncome({
+      id: 'rec-3',
+      userId: 'user-1',
+      accountId: 'bank-1',
+      categoryId: 'income.refunds',
+      amountCents: 50_00,
+      now: NOW,
+    });
+    const transfer = income.convertToTransfer('cash-1', later);
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe('cash-1');
+    expect(transfer.counterpartyAccountId).toBe('bank-1');
+
+    const restored = transfer.convertToLedger('income', 'income.refunds', later);
+    expect(restored.kind).toBe('income');
+    expect(restored.accountId).toBe('bank-1');
+    expect(restored.categoryId).toBe('income.refunds');
+  });
+
+  it('lets an AIS expense become a transfer without dropping its bank identity', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const record = LedgerRecord.createFromAis({
+      id: 'ais-1',
+      userId: 'user-1',
+      accountId: 'bank-1',
+      signedAmountCents: -1299,
+      externalId: 'tx-1',
+      label: 'Carrefour',
+      now: NOW,
+    });
+    const transfer = record.convertToTransfer('cash-1', later);
+    expect(transfer.kind).toBe('transfer');
+    expect(transfer.accountId).toBe('bank-1');
+    expect(transfer.counterpartyAccountId).toBe('cash-1');
+    expect(transfer.externalId).toBe('tx-1');
+    expect(transfer.isAis).toBe(true);
+
+    const moved = transfer.setTransferAccounts('bank-1', 'cash-2', later);
+    expect(moved.counterpartyAccountId).toBe('cash-2');
+    expect(() => transfer.setTransferAccounts('cash-1', 'cash-2', later)).toThrow(
+      CannotMutateAisRecord,
+    );
+  });
+
   it('imports AIS income and refreshes the bank snapshot without touching category', () => {
     const later = new Date('2026-09-20T11:00:00.000Z');
     const record = LedgerRecord.createFromAis({

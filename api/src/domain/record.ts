@@ -147,6 +147,54 @@ export class LedgerRecord {
     return this.with({ categoryId }, now);
   }
 
+  convertToTransfer(otherAccountId: string, now: Date): LedgerRecord {
+    if (this.kind === 'transfer') {
+      throw new InvalidRecord('Already a transfer');
+    }
+    if (otherAccountId === this.accountId) {
+      throw new InvalidRecord('Transfer accounts must differ');
+    }
+    if (this.kind === 'income') {
+      return this.with(
+        {
+          kind: 'transfer',
+          accountId: otherAccountId,
+          counterpartyAccountId: this.accountId,
+          categoryId: null,
+        },
+        now,
+      );
+    }
+    return this.with(
+      {
+        kind: 'transfer',
+        counterpartyAccountId: otherAccountId,
+        categoryId: null,
+      },
+      now,
+    );
+  }
+
+  convertToLedger(
+    kind: Exclude<RecordKind, 'transfer'>,
+    categoryId: string,
+    now: Date,
+  ): LedgerRecord {
+    const accountId =
+      this.kind === 'transfer' && kind === 'income' && this.counterpartyAccountId != null
+        ? this.counterpartyAccountId
+        : this.accountId;
+    return this.with(
+      {
+        kind,
+        categoryId,
+        accountId,
+        counterpartyAccountId: null,
+      },
+      now,
+    );
+  }
+
   moveToAccount(accountId: string, now: Date): LedgerRecord {
     this.assertManualMutation();
     if (this.kind === 'transfer') {
@@ -156,9 +204,15 @@ export class LedgerRecord {
   }
 
   setTransferAccounts(fromAccountId: string, toAccountId: string, now: Date): LedgerRecord {
-    this.assertManualMutation();
     if (this.kind !== 'transfer') {
       throw new InvalidRecord('Only transfers have two accounts');
+    }
+    if (
+      this.isAis &&
+      fromAccountId !== this.accountId &&
+      toAccountId !== this.counterpartyAccountId
+    ) {
+      throw new CannotMutateAisRecord();
     }
     return this.with({ accountId: fromAccountId, counterpartyAccountId: toAccountId }, now);
   }
@@ -321,9 +375,6 @@ function assertShape(record: LedgerRecord): void {
     }
     if (record.accountId === record.counterpartyAccountId) {
       throw new InvalidRecord('Transfer accounts must differ');
-    }
-    if (record.externalId != null) {
-      throw new InvalidRecord('Transfers cannot come from AIS');
     }
     return;
   }

@@ -105,6 +105,7 @@ describe('ui messages', () => {
       'record.selectAccounts',
       'record.allAccounts',
       'record.allCategories',
+      'record.selectAccount',
     ] as const;
 
     for (const key of keys) {
