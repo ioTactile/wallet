@@ -20,6 +20,7 @@ describe('FakeBankConnection', () => {
     expect(url.pathname).toBe('/bank/sandbox/authorize');
     expect(url.searchParams.get('connectionId')).toBe('link-1');
     expect(url.searchParams.get('redirect_uri')).toBe('mobile://bank/callback');
+    expect(bank.provider).toBe('sandbox');
   });
 
   it('exposes the demo checking account and eight transactions including one pending', async () => {

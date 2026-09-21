@@ -1,3 +1,5 @@
+import type { BankProvider } from './bank-link.js';
+
 export type ExternalBankAccount = {
   externalId: string;
   name: string;
@@ -20,12 +22,24 @@ export type BankConsent = {
   authorizationUrl: string;
 };
 
+export type ListBankTransactionsOptions = {
+  from?: Date;
+};
+
+export type FinalizeBankConsentInput = {
+  code?: string;
+  providerConnectionId: string;
+};
+
 export interface BankConnection {
+  readonly provider: BankProvider;
   startConsent(input: { userId: string; redirectUri: string; state: string }): Promise<BankConsent>;
+  finalizeConsent(input: FinalizeBankConsentInput): Promise<string>;
   listAccounts(providerConnectionId: string): Promise<ExternalBankAccount[]>;
   listTransactions(
     providerConnectionId: string,
     accountExternalId: string,
+    options?: ListBankTransactionsOptions,
   ): Promise<ExternalBankTransaction[]>;
   revoke(providerConnectionId: string): Promise<void>;
 }

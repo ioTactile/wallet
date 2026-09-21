@@ -64,6 +64,7 @@ describe('bank connection use cases', () => {
     expect(started.authorizationUrl).toContain('/bank/sandbox/authorize');
     expect(started.authorizationUrl).toContain('connectionId=id-1');
     expect((await links.getById(started.id))?.status).toBe('pending');
+    expect((await links.getById(started.id))?.provider).toBe('sandbox');
   });
 
   it('completes a connection by creating the demo bank account and importing AIS records', async () => {
@@ -123,6 +124,7 @@ describe('bank connection use cases', () => {
     expect(listed.find((record) => record.id === carrefour.id)?.categoryId).toBe(
       'food_drinks.groceries',
     );
+    expect(bank.lastFrom).toEqual(new Date('2026-09-20T10:00:00.000Z'));
   });
 
   it('rejects complete/sync/disconnect for the wrong user or cash accounts', async () => {

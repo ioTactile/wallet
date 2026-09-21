@@ -1,6 +1,6 @@
 import { InvalidBankLink } from './errors.js';
 
-export const BANK_PROVIDERS = ['sandbox'] as const;
+export const BANK_PROVIDERS = ['sandbox', 'gocardless', 'enablebanking'] as const;
 export type BankProvider = (typeof BANK_PROVIDERS)[number];
 
 export const BANK_LINK_STATUSES = ['pending', 'active', 'revoked'] as const;
@@ -83,10 +83,21 @@ export class BankLink {
     return this.with({ status: 'revoked' }, now);
   }
 
+  bindProviderConnection(providerConnectionId: string, now: Date): BankLink {
+    if (this.status === 'revoked') {
+      throw new InvalidBankLink('Revoked bank link cannot change provider connection');
+    }
+    if (this.providerConnectionId === providerConnectionId) {
+      return this;
+    }
+    return this.with({ providerConnectionId: assertId(providerConnectionId) }, now);
+  }
+
   private with(
     overrides: Partial<{
       status: BankLinkStatus;
       lastSyncedAt: Date | null;
+      providerConnectionId: string;
     }>,
     now: Date,
   ): BankLink {

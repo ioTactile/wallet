@@ -50,6 +50,7 @@ export class SyncBankAccount {
     const transactions = await this.bank.listTransactions(
       link.providerConnectionId,
       account.externalAccountId,
+      account.lastSyncedAt ? { from: account.lastSyncedAt } : undefined,
     );
 
     let importedCount = 0;

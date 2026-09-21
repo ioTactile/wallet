@@ -1,4 +1,6 @@
 import {
+  enableBankingReturnQuerySchema,
+  gocardlessReturnQuerySchema,
   sandboxAuthorizeQuerySchema,
   startBankConnectionBodySchema,
   startBankConnectionResponseSchema,
@@ -6,13 +8,16 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import type { CompleteBankConnection } from '../../application/complete-bank-connection.js';
+import type { FinalizeBankAuthorization } from '../../application/finalize-bank-authorization.js';
 import type { GetAccountBalances } from '../../application/get-account-balances.js';
 import type { StartBankConnection } from '../../application/start-bank-connection.js';
+import { decodeEnableBankingState } from '../enablebanking-mapper.js';
 import { presentAccounts } from './account-routes.js';
 
 export type BankRoutesDeps = {
   startBankConnection: StartBankConnection;
   completeBankConnection: CompleteBankConnection;
+  finalizeBankAuthorization: FinalizeBankAuthorization;
   getAccountBalances: GetAccountBalances;
 };
 
@@ -36,6 +41,25 @@ export async function registerBankRoutes(app: FastifyInstance, deps: BankRoutesD
     reply.removeHeader('x-frame-options');
     reply.header('content-security-policy', 'frame-ancestors *');
     return reply.type('text/html; charset=utf-8').send(sandboxAuthorizePage(href));
+  });
+
+  app.get('/bank/gocardless/return', async (request, reply) => {
+    const query = gocardlessReturnQuerySchema.parse(request.query);
+    return reply.redirect(buildRedirectHref(query.redirect_uri, query.connectionId));
+  });
+
+  app.get('/bank/enablebanking/return', async (request, reply) => {
+    const query = enableBankingReturnQuerySchema.parse(request.query);
+    let state: { connectionId: string; redirectUri: string };
+    try {
+      state = decodeEnableBankingState(query.state);
+    } catch {
+      return reply.code(400).send({ error: 'invalid_body' });
+    }
+    if (query.code != null && query.error == null) {
+      await deps.finalizeBankAuthorization.execute(state.connectionId, query.code);
+    }
+    return reply.redirect(buildRedirectHref(state.redirectUri, state.connectionId));
   });
 }
 

@@ -34,7 +34,7 @@ export const UI_MESSAGES = {
     'account.create': 'Créer',
     'account.cancel': 'Annuler',
     'account.connectBankTitle': 'Connexion bancaire',
-    'account.connectBank': 'Connecter la banque démo',
+    'account.connectBank': 'Connecter BoursoBank',
     'account.connectBankHint':
       'Agrégation en lecture seule. Aucune écriture n’est envoyée à la banque.',
     'account.connectBankError': 'Impossible de connecter la banque. Réessayez.',
@@ -194,7 +194,7 @@ export const UI_MESSAGES = {
     'account.create': 'Create',
     'account.cancel': 'Cancel',
     'account.connectBankTitle': 'Bank connection',
-    'account.connectBank': 'Connect demo bank',
+    'account.connectBank': 'Connect BoursoBank',
     'account.connectBankHint': 'Read-only aggregation. Nothing is written to the bank.',
     'account.connectBankError': 'Could not connect the bank. Try again.',
     'account.connectBankPending': 'Finishing the connection…',

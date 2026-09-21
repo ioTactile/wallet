@@ -227,6 +227,16 @@ describe('drizzle repositories (pglite)', () => {
     await links.save(link);
     expect((await links.getById(link.id))?.status).toBe('active');
 
+    const gocardless = BankLink.start({
+      id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      userId: user.id,
+      provider: 'gocardless',
+      providerConnectionId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      now,
+    });
+    await links.save(gocardless);
+    expect((await links.getById(gocardless.id))?.provider).toBe('gocardless');
+
     const bank = Account.createBank({
       id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
       userId: user.id,

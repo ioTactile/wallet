@@ -8,7 +8,7 @@ import { CreateRecord } from './application/create-record.js';
 import { DeleteAccount } from './application/delete-account.js';
 import { DisconnectBankAccount } from './application/disconnect-bank-account.js';
 import { EnsureDefaultCashAccount } from './application/ensure-default-cash-account.js';
-import { FakeBankConnection } from './application/fake-bank-connection.js';
+import { FinalizeBankAuthorization } from './application/finalize-bank-authorization.js';
 import { GetAccount } from './application/get-account.js';
 import { GetAccountBalances } from './application/get-account-balances.js';
 import { GetCurrentUser } from './application/get-current-user.js';
@@ -25,6 +25,7 @@ import { UpdateProfile } from './application/update-profile.js';
 import { UpdateRecord } from './application/update-record.js';
 import { createServer, registerApi } from './app.js';
 import { loadEnv } from './config/env.js';
+import { createBankConnection } from './infrastructure/create-bank-connection.js';
 import { FastifyJwtTokenIssuer } from './infrastructure/http/fastify-jwt-token-issuer.js';
 import { applyAuthSchema } from './infrastructure/persistence/apply-schema.js';
 import { DrizzleAccountRepository } from './infrastructure/persistence/drizzle-account-repository.js';
@@ -55,7 +56,7 @@ async function main() {
   const hasher = new Argon2Hasher();
   const clock = new SystemClock();
   const ids = new CryptoIdGenerator();
-  const bank = new FakeBankConnection(env.PUBLIC_API_URL);
+  const bank = createBankConnection(env);
   const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
   const syncBankAccount = new SyncBankAccount(accounts, records, links, bank, ids, clock);
 
@@ -103,6 +104,7 @@ async function main() {
       clock,
       syncBankAccount,
     ),
+    finalizeBankAuthorization: new FinalizeBankAuthorization(links, bank, clock),
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
   });

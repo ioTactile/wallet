@@ -25,7 +25,7 @@ export class StartBankConnection {
     const link = BankLink.start({
       id,
       userId,
-      provider: 'sandbox',
+      provider: this.bank.provider,
       providerConnectionId: consent.providerConnectionId,
       now: this.clock.now(),
     });

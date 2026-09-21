@@ -3,7 +3,9 @@ import type {
   BankConnection,
   ExternalBankAccount,
   ExternalBankTransaction,
+  ListBankTransactionsOptions,
 } from '../domain/bank-connection.js';
+import type { BankProvider } from '../domain/bank-link.js';
 
 export const SANDBOX_CHECKING_EXTERNAL_ID = 'sandbox-checking';
 
@@ -85,7 +87,9 @@ export const SANDBOX_TRANSACTIONS: readonly ExternalBankTransaction[] = [
 ];
 
 export class FakeBankConnection implements BankConnection {
+  readonly provider: BankProvider = 'sandbox';
   extraTransactions: ExternalBankTransaction[] = [];
+  lastFrom: Date | undefined;
   private readonly revoked = new Set<string>();
 
   constructor(private readonly publicApiUrl: string) {}
@@ -111,8 +115,10 @@ export class FakeBankConnection implements BankConnection {
   async listTransactions(
     providerConnectionId: string,
     accountExternalId: string,
+    options?: ListBankTransactionsOptions,
   ): Promise<ExternalBankTransaction[]> {
     this.assertActive(providerConnectionId);
+    this.lastFrom = options?.from;
     return [
       ...SANDBOX_TRANSACTIONS.filter(
         (transaction) => transaction.accountExternalId === accountExternalId,
@@ -121,6 +127,11 @@ export class FakeBankConnection implements BankConnection {
         (transaction) => transaction.accountExternalId === accountExternalId,
       ),
     ];
+  }
+
+  async finalizeConsent(input: { code?: string; providerConnectionId: string }): Promise<string> {
+    void input.code;
+    return input.providerConnectionId;
   }
 
   async revoke(providerConnectionId: string): Promise<void> {

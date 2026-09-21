@@ -16,6 +16,7 @@ import {
   InMemoryRefreshTokenRepository,
   InMemoryUserRepository,
 } from '../../application/fakes.js';
+import { FinalizeBankAuthorization } from '../../application/finalize-bank-authorization.js';
 import { GetAccount } from '../../application/get-account.js';
 import { GetAccountBalances } from '../../application/get-account-balances.js';
 import { GetCurrentUser } from '../../application/get-current-user.js';
@@ -87,6 +88,7 @@ export async function startTestApp(now = new Date('2026-09-20T10:00:00.000Z')) {
       clock,
       syncBankAccount,
     ),
+    finalizeBankAuthorization: new FinalizeBankAuthorization(links, bank, clock),
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
   };

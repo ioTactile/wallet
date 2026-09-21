@@ -120,6 +120,9 @@ describe('accounts view-model', () => {
     expect(bankCallbackConnectionId(['abc'])).toBe('abc');
     expect(bankCallbackConnectionId(undefined)).toBeNull();
     expect(bankCallbackConnectionId('   ')).toBeNull();
+    expect(bankCallbackConnectionId(undefined) ?? bankCallbackConnectionId('from-ref')).toBe(
+      'from-ref',
+    );
   });
 
   it('maps confirmation dialogs to shared copy keys', () => {

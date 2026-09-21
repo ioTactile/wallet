@@ -1,6 +1,11 @@
 import { eq } from 'drizzle-orm';
 
-import { BankLink, type BankLinkStatus, type BankProvider } from '../../domain/bank-link.js';
+import {
+  BANK_PROVIDERS,
+  BankLink,
+  type BankLinkStatus,
+  type BankProvider,
+} from '../../domain/bank-link.js';
 import type { BankLinkRepository } from '../../domain/ports.js';
 import type { AppDatabase } from './database.js';
 import { bankLinks } from './schema.js';
@@ -53,8 +58,8 @@ function toBankLink(row: typeof bankLinks.$inferSelect): BankLink {
 }
 
 function toProvider(value: string): BankProvider {
-  if (value === 'sandbox') {
-    return value;
+  if ((BANK_PROVIDERS as readonly string[]).includes(value)) {
+    return value as BankProvider;
   }
   throw new Error(`Invalid bank provider: ${value}`);
 }

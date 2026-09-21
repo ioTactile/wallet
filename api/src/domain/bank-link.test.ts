@@ -24,6 +24,33 @@ describe('BankLink', () => {
     expect(link.provider).toBe('sandbox');
   });
 
+  it('accepts the gocardless AIS provider', () => {
+    const link = BankLink.start({
+      id: 'link-1',
+      userId: 'user-1',
+      provider: 'gocardless',
+      providerConnectionId: 'req-1',
+      now: NOW,
+    });
+    expect(link.provider).toBe('gocardless');
+  });
+
+  it('binds a later provider session id', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const link = BankLink.start({
+      id: 'link-1',
+      userId: 'user-1',
+      provider: 'enablebanking',
+      providerConnectionId: 'auth-1',
+      now: NOW,
+    });
+    expect(link.bindProviderConnection('session-1', later).providerConnectionId).toBe('session-1');
+    expect(link.bindProviderConnection('auth-1', later)).toBe(link);
+    expect(() => link.revoke(later).bindProviderConnection('session-1', later)).toThrow(
+      InvalidBankLink,
+    );
+  });
+
   it('activates once and is idempotent afterwards', () => {
     const later = new Date('2026-09-20T11:00:00.000Z');
     const active = pending().activate(later);

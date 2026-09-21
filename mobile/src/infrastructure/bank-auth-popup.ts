@@ -11,7 +11,8 @@ export function bankAuthCallbackConnectionId(pathname: string, search: string): 
     return null;
   }
   const query = search.startsWith('?') ? search.slice(1) : search;
-  const raw = new URLSearchParams(query).get('connectionId');
+  const params = new URLSearchParams(query);
+  const raw = params.get('connectionId') ?? params.get('ref');
   if (raw == null) {
     return null;
   }

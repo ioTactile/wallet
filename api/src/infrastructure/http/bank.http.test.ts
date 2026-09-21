@@ -9,6 +9,7 @@ import {
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { startTestApp } from './test-server.js';
+import { encodeEnableBankingState } from '../enablebanking-mapper.js';
 
 const FROM = '2026-09-01T00:00:00.000Z';
 const TO = '2026-09-30T23:59:59.000Z';
@@ -152,5 +153,48 @@ describe('bank HTTP', () => {
     });
     expect(resync.statusCode).toBe(400);
     expect(resync.json()).toEqual({ error: 'cannot_sync_account' });
+  });
+
+  it('redirects the GoCardless return to the mobile callback', async () => {
+    app = await startTestApp();
+    const redirect = await app.inject({
+      method: 'GET',
+      url: `/bank/gocardless/return?connectionId=link-1&redirect_uri=${encodeURIComponent(REDIRECT)}`,
+    });
+    expect(redirect.statusCode).toBe(302);
+    expect(redirect.headers.location).toBe(`${REDIRECT}?connectionId=link-1`);
+
+    const fromRef = await app.inject({
+      method: 'GET',
+      url: `/bank/gocardless/return?ref=link-2&redirect_uri=${encodeURIComponent(`${REDIRECT}?x=1`)}`,
+    });
+    expect(fromRef.statusCode).toBe(302);
+    expect(fromRef.headers.location).toBe(`${REDIRECT}?x=1&connectionId=link-2`);
+  });
+
+  it('exchanges Enable Banking state and redirects to the mobile callback', async () => {
+    app = await startTestApp();
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'jordan@example.com', password: 'longenough' },
+    });
+    const started = await app.inject({
+      method: 'POST',
+      url: '/bank/connections',
+      headers: { authorization: `Bearer ${registered.json().accessToken}` },
+      payload: { redirectUri: REDIRECT },
+    });
+    const consent = startBankConnectionResponseSchema.parse(started.json());
+    const state = encodeEnableBankingState({
+      connectionId: consent.id,
+      redirectUri: REDIRECT,
+    });
+    const returned = await app.inject({
+      method: 'GET',
+      url: `/bank/enablebanking/return?code=auth-code&state=${encodeURIComponent(state)}`,
+    });
+    expect(returned.statusCode).toBe(302);
+    expect(returned.headers.location).toBe(`${REDIRECT}?connectionId=${consent.id}`);
   });
 });

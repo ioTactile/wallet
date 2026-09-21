@@ -56,10 +56,14 @@ export {
   type UpdateAccountBody,
 } from './account/schemas.js';
 export {
+  enableBankingReturnQuerySchema,
+  gocardlessReturnQuerySchema,
   sandboxAuthorizeQuerySchema,
   startBankConnectionBodySchema,
   startBankConnectionResponseSchema,
   syncBankAccountResponseSchema,
+  type EnableBankingReturnQuery,
+  type GocardlessReturnQuery,
   type SandboxAuthorizeQuery,
   type StartBankConnectionBody,
   type StartBankConnectionResponse,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  enableBankingReturnQuerySchema,
+  gocardlessReturnQuerySchema,
   sandboxAuthorizeQuerySchema,
   startBankConnectionBodySchema,
   startBankConnectionResponseSchema,
@@ -36,5 +38,33 @@ describe('bank schemas', () => {
       connectionId: 'link-1',
       redirect_uri: 'mobile://bank/callback',
     });
+  });
+
+  it('accepts GoCardless ref as the connection id', () => {
+    expect(
+      gocardlessReturnQuerySchema.parse({
+        ref: 'link-1',
+        redirect_uri: 'mobile://bank/callback',
+      }),
+    ).toEqual({
+      connectionId: 'link-1',
+      redirect_uri: 'mobile://bank/callback',
+    });
+    expect(() =>
+      gocardlessReturnQuerySchema.parse({ redirect_uri: 'mobile://bank/callback' }),
+    ).toThrow();
+  });
+
+  it('parses the Enable Banking return query', () => {
+    expect(
+      enableBankingReturnQuerySchema.parse({
+        code: 'auth-code',
+        state: 'abc',
+      }),
+    ).toEqual({
+      code: 'auth-code',
+      state: 'abc',
+    });
+    expect(() => enableBankingReturnQuerySchema.parse({})).toThrow();
   });
 });

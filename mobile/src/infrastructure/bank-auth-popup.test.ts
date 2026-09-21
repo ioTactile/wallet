@@ -20,6 +20,9 @@ describe('bank auth popup protocol', () => {
       ),
     ).toBe('4b9b185b-bea0-4f8a-8bab-aedf6500c603');
     expect(bankAuthCallbackConnectionId('/bank-callback.html', '?connectionId=abc')).toBe('abc');
+    expect(bankAuthCallbackConnectionId('/bank/callback', '?ref=from-gocardless')).toBe(
+      'from-gocardless',
+    );
     expect(bankAuthCallbackConnectionId('/accounts', '?connectionId=abc')).toBeNull();
     expect(bankAuthCallbackConnectionId('/bank/callback', '')).toBeNull();
   });

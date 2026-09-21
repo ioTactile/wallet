@@ -14,11 +14,15 @@ export function BankCallbackScreen() {
   const { t } = useTranslation();
   const { unlocked, session } = useAuth();
   const router = useRouter();
-  const params = useLocalSearchParams<{ connectionId?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    connectionId?: string | string[];
+    ref?: string | string[];
+  }>();
   const complete = useCompleteBankConnection();
   const [error, setError] = useState<string | null>(null);
   const colors = Colors.light;
-  const connectionId = bankCallbackConnectionId(params.connectionId);
+  const connectionId =
+    bankCallbackConnectionId(params.connectionId) ?? bankCallbackConnectionId(params.ref);
   const handedOff = Platform.OS === 'web' && connectionId != null;
   const displayError = connectionId == null ? t('account.connectBankError') : error;
 
