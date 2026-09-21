@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { donutArcs, hitDonutSlice } from './donut-arcs';
+import { donutArcs, hitDonutSlice } from '@/components/donut-arcs';
 
 describe('donutArcs', () => {
   it('builds one path per positive share and a full ring for a single slice', () => {

@@ -1,15 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Account, Record as WalletRecord } from '@wallet/shared';
 
 import { DonutChart } from '@/components/donut-chart';
@@ -18,14 +10,13 @@ import { Colors, Spacing } from '@/constants/theme';
 import type { DataScreenStatus } from '@/screens/accounts/accounts-view-model';
 import {
   buildExpensesStructure,
-  EXPENSE_STRUCTURE_FILTERS,
-  EXPENSE_STRUCTURE_PERIODS,
   goBack,
   goDeeper,
   showsActiveFilter,
   type ExpenseStructureFilter,
   type ExpenseStructurePeriod,
 } from '@/screens/home/expenses-structure-view-model';
+import { HomeCardConfigModal } from '@/screens/home/home-card-config-modal';
 
 const DONUT_SIZE = 220;
 const UP_COLOR = Colors.light.danger;
@@ -58,9 +49,6 @@ export function ExpensesStructureCard({
   const [parentId, setParentId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
-  const [draftPeriod, setDraftPeriod] = useState(period);
-  const [draftFilter, setDraftFilter] = useState(filter);
-  const [openMenu, setOpenMenu] = useState<'period' | 'filter' | null>(null);
 
   const vm = buildExpensesStructure({
     records,
@@ -77,9 +65,6 @@ export function ExpensesStructureCard({
   }
 
   function openConfig() {
-    setDraftPeriod(period);
-    setDraftFilter(filter);
-    setOpenMenu(null);
     setConfigOpen(true);
   }
 
@@ -232,103 +217,18 @@ export function ExpensesStructureCard({
         </>
       ) : null}
 
-      <Modal
+      <HomeCardConfigModal
         visible={configOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setConfigOpen(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('account.cancel')}
-            style={StyleSheet.absoluteFill}
-            onPress={() => setConfigOpen(false)}
-          />
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('home.cardConfiguration')}</Text>
-            <Text style={styles.fieldLabel}>{t('home.selectPeriod')}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setOpenMenu((current) => (current === 'period' ? null : 'period'))}
-              style={styles.field}
-            >
-              <Text style={styles.fieldValue}>{t(`record.period.${draftPeriod}`)}</Text>
-              <SymbolView name={Icons.chevronRight} size={16} tintColor="#9CA3AF" />
-            </Pressable>
-            {openMenu === 'period' ? (
-              <ScrollView
-                style={styles.dropdown}
-                nestedScrollEnabled
-                keyboardShouldPersistTaps="handled"
-              >
-                {EXPENSE_STRUCTURE_PERIODS.map((item) => (
-                  <Pressable
-                    key={item}
-                    onPress={() => {
-                      setDraftPeriod(item);
-                      setOpenMenu(null);
-                    }}
-                    style={styles.dropdownItem}
-                  >
-                    <Text>{t(`record.period.${item}`)}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : null}
-            <Text style={styles.fieldLabel}>{t('home.filter')}</Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setOpenMenu((current) => (current === 'filter' ? null : 'filter'))}
-              style={styles.field}
-            >
-              <Text style={styles.fieldValue}>{t(`home.filter.${draftFilter}`)}</Text>
-              <SymbolView name={Icons.chevronRight} size={16} tintColor="#9CA3AF" />
-            </Pressable>
-            {openMenu === 'filter' ? (
-              <View style={styles.dropdown}>
-                {EXPENSE_STRUCTURE_FILTERS.map((item) => (
-                  <Pressable
-                    key={item}
-                    onPress={() => {
-                      setDraftFilter(item);
-                      setOpenMenu(null);
-                    }}
-                    style={styles.dropdownItem}
-                  >
-                    <Text>{t(`home.filter.${item}`)}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-            <View style={styles.modalActions}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setConfigOpen(false)}
-                style={styles.modalAction}
-              >
-                <Text style={[styles.modalActionLabel, { color: colors.action }]}>
-                  {t('account.cancel')}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setParentId(null);
-                  setSelectedId(null);
-                  onSaveConfig({ period: draftPeriod, filter: draftFilter });
-                  setConfigOpen(false);
-                }}
-                style={styles.modalAction}
-              >
-                <Text style={[styles.modalActionLabel, { color: colors.action }]}>
-                  {t('account.save')}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        period={period}
+        filter={filter}
+        onDismiss={() => setConfigOpen(false)}
+        onSave={(next) => {
+          setParentId(null);
+          setSelectedId(null);
+          onSaveConfig(next);
+          setConfigOpen(false);
+        }}
+      />
     </View>
   );
 }
@@ -495,68 +395,5 @@ const styles = StyleSheet.create({
   legendSelected: {
     fontWeight: '700',
     color: '#111827',
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-    justifyContent: 'center',
-    padding: Spacing.four,
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderCurve: 'continuous',
-    padding: Spacing.four,
-    zIndex: 1,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: Spacing.three,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginBottom: Spacing.one,
-  },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E7EB',
-    paddingVertical: Spacing.two,
-    marginBottom: Spacing.three,
-  },
-  fieldValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dropdown: {
-    marginTop: -Spacing.two,
-    marginBottom: Spacing.three,
-    maxHeight: 280,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderCurve: 'continuous',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-    overflow: 'hidden',
-  },
-  dropdownItem: {
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.four,
-    marginTop: Spacing.two,
-  },
-  modalAction: {
-    paddingVertical: Spacing.two,
-  },
-  modalActionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

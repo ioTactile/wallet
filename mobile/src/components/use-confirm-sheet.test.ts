@@ -5,7 +5,7 @@ import {
   toConfirmSheetView,
   type ConfirmSheetCopy,
   type ConfirmSheetState,
-} from './use-confirm-sheet';
+} from '@/components/use-confirm-sheet';
 
 type Kind = 'delete' | 'leave';
 

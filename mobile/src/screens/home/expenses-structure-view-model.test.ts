@@ -15,7 +15,7 @@ import {
   goDeeper,
   previousExpensePeriodRange,
   showsActiveFilter,
-} from './expenses-structure-view-model';
+} from '@/screens/home/expenses-structure-view-model';
 
 const NOW = new Date(2026, 8, 21, 12, 0, 0);
 const CASH_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

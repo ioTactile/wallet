@@ -160,6 +160,8 @@ export const UI_MESSAGES = {
     'home.filter.withoutTransfers': 'Sans virements',
     'home.activeFilter': 'Filtre actif : {{filter}}',
     'home.configureCard': 'Configurer la carte',
+    'home.balanceTrend': 'Évolution du solde',
+    'home.balanceTrendEmpty': 'Pas encore de solde à afficher.',
   },
   en: {
     'tabs.home': 'Home',
@@ -317,6 +319,8 @@ export const UI_MESSAGES = {
     'home.filter.withoutTransfers': 'Without transfers',
     'home.activeFilter': 'Active filter: {{filter}}',
     'home.configureCard': 'Configure card',
+    'home.balanceTrend': 'Balance Trend',
+    'home.balanceTrendEmpty': 'No balance to show yet.',
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

@@ -120,6 +120,8 @@ describe('ui messages', () => {
       'home.filter.withoutTransfers',
       'home.activeFilter',
       'home.configureCard',
+      'home.balanceTrend',
+      'home.balanceTrendEmpty',
       'record.week',
       'record.selectAccounts',
       'record.allAccounts',
