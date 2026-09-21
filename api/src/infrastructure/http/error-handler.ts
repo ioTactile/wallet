@@ -13,6 +13,10 @@ const STATUS_BY_CODE: Record<string, number> = {
   account_not_found: 404,
   cannot_delete_last_cash_account: 409,
   account_kind_mismatch: 400,
+  invalid_record: 400,
+  record_not_found: 404,
+  manual_record_on_bank: 400,
+  cannot_delete_account_with_records: 409,
 };
 
 export function mapError(error: unknown): { status: number; body: { error: string } } {

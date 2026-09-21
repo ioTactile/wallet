@@ -3,22 +3,27 @@ import postgres from 'postgres';
 
 import { ArchiveAccount } from './application/archive-account.js';
 import { CreateAccount } from './application/create-account.js';
+import { CreateRecord } from './application/create-record.js';
 import { DeleteAccount } from './application/delete-account.js';
 import { EnsureDefaultCashAccount } from './application/ensure-default-cash-account.js';
 import { GetAccount } from './application/get-account.js';
+import { GetAccountBalances } from './application/get-account-balances.js';
 import { GetCurrentUser } from './application/get-current-user.js';
 import { ListAccounts } from './application/list-accounts.js';
+import { DeleteRecord, GetRecord, ListRecords } from './application/list-records.js';
 import { LoginUser } from './application/login-user.js';
 import { LogoutUser } from './application/logout-user.js';
 import { RefreshSession } from './application/refresh-session.js';
 import { RegisterUser } from './application/register-user.js';
 import { UpdateAccount } from './application/update-account.js';
 import { UpdateProfile } from './application/update-profile.js';
+import { UpdateRecord } from './application/update-record.js';
 import { createServer, registerApi } from './app.js';
 import { loadEnv } from './config/env.js';
 import { FastifyJwtTokenIssuer } from './infrastructure/http/fastify-jwt-token-issuer.js';
 import { applyAuthSchema } from './infrastructure/persistence/apply-schema.js';
 import { DrizzleAccountRepository } from './infrastructure/persistence/drizzle-account-repository.js';
+import { DrizzleRecordRepository } from './infrastructure/persistence/drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './infrastructure/persistence/drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './infrastructure/persistence/drizzle-user-repository.js';
 import * as schema from './infrastructure/persistence/schema.js';
@@ -39,6 +44,7 @@ async function main() {
   const users = new DrizzleUserRepository(db);
   const refreshTokens = new DrizzleRefreshTokenRepository(db);
   const accounts = new DrizzleAccountRepository(db);
+  const records = new DrizzleRecordRepository(db);
   const hasher = new Argon2Hasher();
   const clock = new SystemClock();
   const ids = new CryptoIdGenerator();
@@ -72,7 +78,13 @@ async function main() {
     createAccount: new CreateAccount(accounts, ids, clock),
     updateAccount: new UpdateAccount(accounts, clock),
     archiveAccount: new ArchiveAccount(accounts, clock),
-    deleteAccount: new DeleteAccount(accounts),
+    deleteAccount: new DeleteAccount(accounts, records),
+    getAccountBalances: new GetAccountBalances(records),
+    listRecords: new ListRecords(records),
+    getRecord: new GetRecord(records),
+    createRecord: new CreateRecord(records, accounts, ids, clock),
+    updateRecord: new UpdateRecord(records, accounts, clock),
+    deleteRecord: new DeleteRecord(records),
   });
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });

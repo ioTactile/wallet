@@ -2,7 +2,10 @@ import { errorCodes } from 'fastify';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
 
-import { CannotDeleteLastCashAccount } from '../../domain/errors.js';
+import {
+  CannotDeleteAccountWithRecords,
+  CannotDeleteLastCashAccount,
+} from '../../domain/errors.js';
 import { mapError } from './error-handler.js';
 
 describe('mapError', () => {
@@ -10,6 +13,10 @@ describe('mapError', () => {
     expect(mapError(new CannotDeleteLastCashAccount())).toEqual({
       status: 409,
       body: { error: 'cannot_delete_last_cash_account' },
+    });
+    expect(mapError(new CannotDeleteAccountWithRecords())).toEqual({
+      status: 409,
+      body: { error: 'cannot_delete_account_with_records' },
     });
     expect(mapError(new ZodError([]))).toEqual({ status: 400, body: { error: 'invalid_body' } });
   });

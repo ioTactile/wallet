@@ -6,8 +6,10 @@ import { Email } from '../../domain/email.js';
 import { RefreshToken } from '../../domain/refresh-token.js';
 import { User } from '../../domain/user.js';
 import { Account } from '../../domain/account.js';
+import { LedgerRecord } from '../../domain/record.js';
 import { applyAuthSchema } from './apply-schema.js';
 import { DrizzleAccountRepository } from './drizzle-account-repository.js';
+import { DrizzleRecordRepository } from './drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './drizzle-user-repository.js';
 import * as schema from './schema.js';
@@ -130,5 +132,68 @@ describe('drizzle repositories (pglite)', () => {
 
     await accounts.delete(bank.id);
     expect(await accounts.getById(bank.id)).toBeNull();
+  });
+
+  it('persists expense and transfer records and detects account usage', async () => {
+    client = new PGlite();
+    const db = drizzle(client, { schema });
+    await applyAuthSchema(db);
+    const users = new DrizzleUserRepository(db);
+    const accounts = new DrizzleAccountRepository(db);
+    const records = new DrizzleRecordRepository(db);
+
+    const user = new User(
+      '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
+      Email.parse('jordan@example.com'),
+      'hashed:secret',
+      new Date('2026-09-19T20:00:00.000Z'),
+    );
+    await users.save(user);
+    const cash = Account.createCash({
+      id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+      userId: user.id,
+      name: 'Espèces',
+      now: new Date('2026-09-20T10:00:00.000Z'),
+    });
+    const bank = Account.createBank({
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      userId: user.id,
+      name: 'CIC',
+      now: new Date('2026-09-20T10:01:00.000Z'),
+      position: 1,
+    });
+    await accounts.save(cash);
+    await accounts.save(bank);
+
+    const expense = LedgerRecord.createExpense({
+      id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      userId: user.id,
+      accountId: cash.id,
+      categoryId: 'food_drinks.groceries',
+      amountCents: 199,
+      now: new Date('2026-09-20T10:00:00.000Z'),
+    });
+    const transfer = LedgerRecord.createTransfer({
+      id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+      userId: user.id,
+      accountId: cash.id,
+      counterpartyAccountId: bank.id,
+      amountCents: 500,
+      now: new Date('2026-09-21T10:00:00.000Z'),
+    });
+    await records.save(expense);
+    await records.save(transfer);
+
+    const listed = await records.listByUser(user.id);
+    expect(listed.map((record) => record.kind)).toEqual(['transfer', 'expense']);
+    expect(await records.existsForAccount(bank.id)).toBe(true);
+
+    const updated = expense.setNote('Courses', new Date('2026-09-20T11:00:00.000Z'));
+    await records.save(updated);
+    expect((await records.getById(expense.id))?.note).toBe('Courses');
+
+    await records.delete(transfer.id);
+    expect(await records.getById(transfer.id)).toBeNull();
+    expect(await records.existsForAccount(bank.id)).toBe(false);
   });
 });

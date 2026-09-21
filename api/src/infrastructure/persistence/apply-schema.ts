@@ -48,4 +48,30 @@ export async function applyAuthSchema(db: AppDatabase): Promise<void> {
   await db.execute(`
     CREATE INDEX IF NOT EXISTS accounts_user_id_idx ON accounts (user_id)
   `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS records (
+      id uuid PRIMARY KEY,
+      user_id uuid NOT NULL REFERENCES users(id),
+      kind text NOT NULL,
+      account_id uuid NOT NULL REFERENCES accounts(id),
+      counterparty_account_id uuid REFERENCES accounts(id),
+      category_id text,
+      amount_cents integer NOT NULL,
+      currency text NOT NULL,
+      booked_at timestamptz NOT NULL,
+      clearing text NOT NULL,
+      note text NOT NULL,
+      created_at timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL
+    )
+  `);
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS records_user_id_booked_at_idx ON records (user_id, booked_at)
+  `);
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS records_account_id_idx ON records (account_id)
+  `);
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS records_counterparty_account_id_idx ON records (counterparty_account_id)
+  `);
 }

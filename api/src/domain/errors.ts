@@ -67,3 +67,27 @@ export class AccountKindMismatch extends DomainError {
     super('account_kind_mismatch', 'Account kind mismatch');
   }
 }
+
+export class InvalidRecord extends DomainError {
+  constructor(message = 'Invalid record') {
+    super('invalid_record', message);
+  }
+}
+
+export class RecordNotFound extends DomainError {
+  constructor() {
+    super('record_not_found', 'Record not found');
+  }
+}
+
+export class ManualRecordOnBank extends DomainError {
+  constructor() {
+    super('manual_record_on_bank', 'Manual expense and income are only allowed on cash accounts');
+  }
+}
+
+export class CannotDeleteAccountWithRecords extends DomainError {
+  constructor() {
+    super('cannot_delete_account_with_records', 'Cannot delete an account that has records');
+  }
+}

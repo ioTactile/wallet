@@ -7,10 +7,12 @@ import type {
   Clock,
   Hasher,
   IdGenerator,
+  RecordRepository,
   RefreshTokenRepository,
   TokenIssuer,
   UserRepository,
 } from '../domain/ports.js';
+import type { LedgerRecord } from '../domain/record.js';
 import type { IssuedRefresh, RefreshToken } from '../domain/refresh-token.js';
 import type { User } from '../domain/user.js';
 
@@ -35,6 +37,34 @@ export class InMemoryAccountRepository implements AccountRepository {
 
   async delete(id: string): Promise<void> {
     this.accounts.delete(id);
+  }
+}
+
+export class InMemoryRecordRepository implements RecordRepository {
+  private readonly records = new Map<string, LedgerRecord>();
+
+  async getById(id: string): Promise<LedgerRecord | null> {
+    return this.records.get(id) ?? null;
+  }
+
+  async save(record: LedgerRecord): Promise<void> {
+    this.records.set(record.id, record);
+  }
+
+  async delete(id: string): Promise<void> {
+    this.records.delete(id);
+  }
+
+  async listByUser(userId: string): Promise<LedgerRecord[]> {
+    return [...this.records.values()]
+      .filter((record) => record.userId === userId)
+      .sort((a, b) => b.bookedAt.getTime() - a.bookedAt.getTime() || a.id.localeCompare(b.id));
+  }
+
+  async existsForAccount(accountId: string): Promise<boolean> {
+    return [...this.records.values()].some(
+      (record) => record.accountId === accountId || record.counterpartyAccountId === accountId,
+    );
   }
 }
 

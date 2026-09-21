@@ -8,6 +8,8 @@ import type { AccountRoutesDeps } from './infrastructure/http/account-routes.js'
 import { registerAccountRoutes } from './infrastructure/http/account-routes.js';
 import type { AuthRoutesDeps } from './infrastructure/http/auth-routes.js';
 import { registerAuthRoutes } from './infrastructure/http/auth-routes.js';
+import type { RecordRoutesDeps } from './infrastructure/http/record-routes.js';
+import { registerRecordRoutes } from './infrastructure/http/record-routes.js';
 import { mapError } from './infrastructure/http/error-handler.js';
 import type { Env } from './config/env.js';
 
@@ -67,9 +69,10 @@ export async function createServer(env: Env): Promise<FastifyInstance> {
   return app;
 }
 
-export type ApiDeps = AuthRoutesDeps & AccountRoutesDeps;
+export type ApiDeps = AuthRoutesDeps & AccountRoutesDeps & RecordRoutesDeps;
 
 export async function registerApi(app: FastifyInstance, deps: ApiDeps): Promise<void> {
   await registerAuthRoutes(app, deps);
   await registerAccountRoutes(app, deps);
+  await registerRecordRoutes(app, deps);
 }

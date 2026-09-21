@@ -2,6 +2,7 @@ import { HttpAccountApi } from '@/infrastructure/account-api';
 import { HttpAuthApi } from '@/infrastructure/auth-api';
 import { ExpoPinHasher } from '@/infrastructure/expo-pin-hasher';
 import { secretStore } from '@/infrastructure/expo-secret-store';
+import { HttpRecordApi } from '@/infrastructure/record-api';
 import { SecurePinVault, SecureSessionVault } from '@/infrastructure/secure-vaults';
 
 import {
@@ -12,6 +13,7 @@ import {
   ListAccounts,
   UpdateAccount,
 } from './accounts';
+import { CreateRecord, DeleteRecord, GetRecord, ListRecords, UpdateRecord } from './records';
 import {
   HydrateAuth,
   LoginAccount,
@@ -27,6 +29,7 @@ const sessionVault = new SecureSessionVault(secretStore);
 const pinHasher = new ExpoPinHasher();
 const authApi = new HttpAuthApi();
 const accountApi = new HttpAccountApi(sessionVault, authApi);
+const recordApi = new HttpRecordApi(sessionVault, authApi);
 
 export const authUseCases = {
   pinVault,
@@ -47,4 +50,12 @@ export const accountUseCases = {
   update: new UpdateAccount(accountApi),
   archive: new ArchiveAccount(accountApi),
   delete: new DeleteAccount(accountApi),
+};
+
+export const recordUseCases = {
+  list: new ListRecords(recordApi),
+  get: new GetRecord(recordApi),
+  create: new CreateRecord(recordApi),
+  update: new UpdateRecord(recordApi),
+  delete: new DeleteRecord(recordApi),
 };

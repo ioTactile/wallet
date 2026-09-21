@@ -22,6 +22,7 @@ import {
   FakeTokenIssuer,
   FixedClock,
   InMemoryAccountRepository,
+  InMemoryRecordRepository,
   InMemoryRefreshTokenRepository,
   InMemoryUserRepository,
   SequentialIds,
@@ -36,6 +37,7 @@ const OTHER_USER = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
 function accountsSetup() {
   const accounts = new InMemoryAccountRepository();
+  const records = new InMemoryRecordRepository();
   const ids = new SequentialIds();
   const clock = new FixedClock(new Date('2026-09-20T10:00:00.000Z'));
   const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
@@ -49,7 +51,7 @@ function accountsSetup() {
     create: new CreateAccount(accounts, ids, clock),
     update: new UpdateAccount(accounts, clock),
     archive: new ArchiveAccount(accounts, clock),
-    remove: new DeleteAccount(accounts),
+    remove: new DeleteAccount(accounts, records),
   };
 }
 

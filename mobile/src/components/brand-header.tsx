@@ -11,16 +11,23 @@ type Props = {
   leftIcon?: HeaderLeftIcon;
   rightIcon?: HeaderRightIcon;
   onRightPress?: () => void;
+  color?: string;
 };
 
-export function BrandHeader({ title, onLeftPress, leftIcon, rightIcon, onRightPress }: Props) {
+export function BrandHeader({
+  title,
+  onLeftPress,
+  leftIcon,
+  rightIcon,
+  onRightPress,
+  color,
+}: Props) {
   const insets = useSafeAreaInsets();
   const colors = Colors.light;
+  const backgroundColor = color ?? colors.brand;
 
   return (
-    <View
-      style={[styles.bar, { paddingTop: insets.top + Spacing.two, backgroundColor: colors.brand }]}
-    >
+    <View style={[styles.bar, { paddingTop: insets.top + Spacing.two, backgroundColor }]}>
       <View style={styles.leading}>
         <Pressable onPress={onLeftPress} style={styles.iconButton} disabled={!onLeftPress}>
           {leftIcon ? (

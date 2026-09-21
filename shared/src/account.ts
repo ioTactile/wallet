@@ -5,7 +5,7 @@ export type AccountKind = (typeof ACCOUNT_KINDS)[number];
 /** Legacy token for the default cash ledger. Not a persisted account UUID. */
 export const DEFAULT_CASH_ACCOUNT_ID = 'cash';
 
-export const DEFAULT_ACCOUNT_CURRENCY = 'EUR';
+export const DEFAULT_ACCOUNT_CURRENCY = 'EUR' as const;
 
 export const ACCOUNT_COLORS = [
   '#66BB6A',

@@ -72,7 +72,12 @@ export function HomeScreen() {
           <Text style={styles.addLabel}>{t('home.addAccount')}</Text>
           <Text style={styles.addPlus}>+</Text>
         </Pressable>
-        <Pressable style={styles.records}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home.records')}
+          onPress={() => router.push('/records')}
+          style={styles.records}
+        >
           <SymbolView name={Icons.list} size={18} tintColor="#111827" />
           <Text style={styles.recordsLabel}>{t('home.records')}</Text>
         </Pressable>

@@ -1,8 +1,15 @@
-import { AccountNotFound, CannotDeleteLastCashAccount } from '../domain/errors.js';
-import type { AccountRepository } from '../domain/ports.js';
+import {
+  AccountNotFound,
+  CannotDeleteAccountWithRecords,
+  CannotDeleteLastCashAccount,
+} from '../domain/errors.js';
+import type { AccountRepository, RecordRepository } from '../domain/ports.js';
 
 export class DeleteAccount {
-  constructor(private readonly accounts: AccountRepository) {}
+  constructor(
+    private readonly accounts: AccountRepository,
+    private readonly records: RecordRepository,
+  ) {}
 
   async execute(userId: string, accountId: string): Promise<void> {
     const account = await this.accounts.getById(accountId);
@@ -19,6 +26,10 @@ export class DeleteAccount {
       if (otherActiveCash.length === 0) {
         throw new CannotDeleteLastCashAccount();
       }
+    }
+
+    if (await this.records.existsForAccount(account.id)) {
+      throw new CannotDeleteAccountWithRecords();
     }
 
     await this.accounts.delete(account.id);

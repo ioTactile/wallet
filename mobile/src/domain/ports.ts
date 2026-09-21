@@ -1,4 +1,12 @@
-import type { Account, CreateAccountBody, UpdateAccountBody } from '@wallet/shared';
+import type {
+  Account,
+  CreateAccountBody,
+  CreateRecordBody,
+  Record as WalletRecord,
+  RecordsResponse,
+  UpdateAccountBody,
+  UpdateRecordBody,
+} from '@wallet/shared';
 
 import type { PinRecord, Session } from './session';
 
@@ -54,5 +62,26 @@ export class AccountApiError extends Error {
   constructor(readonly code: string) {
     super(code);
     this.name = 'AccountApiError';
+  }
+}
+
+export type ListRecordsOptions = {
+  from: string;
+  to: string;
+  accountIds?: string[];
+};
+
+export interface RecordRepository {
+  list(options: ListRecordsOptions): Promise<RecordsResponse>;
+  getById(id: string): Promise<WalletRecord>;
+  create(body: CreateRecordBody): Promise<WalletRecord>;
+  update(id: string, body: UpdateRecordBody): Promise<WalletRecord>;
+  delete(id: string): Promise<void>;
+}
+
+export class RecordApiError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'RecordApiError';
   }
 }

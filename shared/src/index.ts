@@ -67,3 +67,25 @@ export { CATEGORY_LABELS, categoryLabel } from './category/labels.js';
 export { UI_MESSAGES, i18nResources, type UiMessageKey } from './i18n/ui.js';
 export { DEFAULT_LOCALE, LOCALES, resolveLocale, type Locale } from './locale.js';
 export { RECORD_CLEARING, RECORD_KINDS, type RecordClearing, type RecordKind } from './record.js';
+export {
+  createRecordBodySchema,
+  listRecordsQuerySchema,
+  RECORD_NOTE_MAX_LENGTH,
+  recordSchema,
+  recordsResponseSchema,
+  updateRecordBodySchema,
+  type CreateRecordBody,
+  type ExpenseRecord,
+  type IncomeRecord,
+  type ListRecordsQuery,
+  type Record,
+  type RecordsResponse,
+  type TransferRecord,
+  type UpdateRecordBody,
+} from './record/schemas.js';
+export {
+  accumulateBalances,
+  recordTouchesAccounts,
+  signedAmountForAccount,
+  signedAmountForSelection,
+} from './record/signed-amount.js';

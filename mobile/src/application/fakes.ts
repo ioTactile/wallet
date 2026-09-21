@@ -3,18 +3,24 @@ import {
   DEFAULT_ACCOUNT_CURRENCY,
   type Account,
   type CreateAccountBody,
+  type CreateRecordBody,
+  type Record as WalletRecord,
+  type RecordsResponse,
   type UpdateAccountBody,
+  type UpdateRecordBody,
 } from '@wallet/shared';
 
 import type {
   AccountRepository,
   AuthApi,
   ListAccountsOptions,
+  ListRecordsOptions,
   PinHasher,
   PinVault,
+  RecordRepository,
   SessionVault,
 } from '@/domain/ports';
-import { AccountApiError, AuthApiError } from '@/domain/ports';
+import { AccountApiError, AuthApiError, RecordApiError } from '@/domain/ports';
 import type { PinRecord, Session } from '@/domain/session';
 
 export const FAKE_NOW = '2026-09-20T10:00:00.000Z';
@@ -180,6 +186,117 @@ export class InMemoryAccountRepository implements AccountRepository {
       }
     }
     this.accounts = this.accounts.filter((account) => account.id !== id);
+  }
+}
+
+export function makeExpenseRecord(
+  overrides: Partial<Extract<WalletRecord, { kind: 'expense' }>> = {},
+): Extract<WalletRecord, { kind: 'expense' }> {
+  return {
+    id: '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
+    userId: FAKE_USER_ID,
+    kind: 'expense',
+    accountId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    categoryId: 'food_drinks.groceries',
+    amountCents: 199,
+    currency: DEFAULT_ACCOUNT_CURRENCY,
+    bookedAt: FAKE_NOW,
+    clearing: 'cleared',
+    note: 'Courses',
+    createdAt: FAKE_NOW,
+    updatedAt: FAKE_NOW,
+    ...overrides,
+  };
+}
+
+export function makeTransferRecord(
+  overrides: Partial<Extract<WalletRecord, { kind: 'transfer' }>> = {},
+): Extract<WalletRecord, { kind: 'transfer' }> {
+  return {
+    id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    userId: FAKE_USER_ID,
+    kind: 'transfer',
+    fromAccountId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    toAccountId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    amountCents: 500,
+    currency: DEFAULT_ACCOUNT_CURRENCY,
+    bookedAt: FAKE_NOW,
+    clearing: 'cleared',
+    note: '',
+    createdAt: FAKE_NOW,
+    updatedAt: FAKE_NOW,
+    ...overrides,
+  };
+}
+
+export class InMemoryRecordRepository implements RecordRepository {
+  records: WalletRecord[] = [];
+  private seq = 10;
+
+  async list(options: ListRecordsOptions): Promise<RecordsResponse> {
+    const inPeriod = this.records.filter(
+      (record) => record.bookedAt >= options.from && record.bookedAt <= options.to,
+    );
+    return {
+      records: inPeriod,
+      openingBalanceCents: 0,
+      periodNetCents: inPeriod.reduce(
+        (sum, record) =>
+          sum + (record.kind === 'expense' ? -record.amountCents : record.amountCents),
+        0,
+      ),
+    };
+  }
+
+  async getById(id: string): Promise<WalletRecord> {
+    const found = this.records.find((record) => record.id === id);
+    if (!found) {
+      throw new RecordApiError('record_not_found');
+    }
+    return found;
+  }
+
+  async create(body: CreateRecordBody): Promise<WalletRecord> {
+    this.seq += 1;
+    const base = {
+      id: nextUuid(this.seq),
+      userId: FAKE_USER_ID,
+      amountCents: body.amountCents,
+      currency: DEFAULT_ACCOUNT_CURRENCY,
+      bookedAt: body.bookedAt ?? FAKE_NOW,
+      clearing: body.clearing ?? 'cleared',
+      note: body.note ?? '',
+      createdAt: FAKE_NOW,
+      updatedAt: FAKE_NOW,
+    };
+    const record: WalletRecord =
+      body.kind === 'transfer'
+        ? {
+            ...base,
+            kind: 'transfer',
+            fromAccountId: body.fromAccountId,
+            toAccountId: body.toAccountId,
+          }
+        : {
+            ...base,
+            kind: body.kind,
+            accountId: body.accountId,
+            categoryId: body.categoryId,
+          };
+    this.records.push(record);
+    return record;
+  }
+
+  async update(id: string, body: UpdateRecordBody): Promise<WalletRecord> {
+    const current = await this.getById(id);
+    const next = { ...current, ...body, updatedAt: FAKE_NOW } as WalletRecord;
+    this.records = this.records.map((record) => (record.id === id ? next : record));
+    return next;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.getById(id);
+    this.records = this.records.filter((record) => record.id !== id);
   }
 }
 

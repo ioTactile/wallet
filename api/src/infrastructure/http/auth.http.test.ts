@@ -1,78 +1,16 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createServer, registerApi } from '../../app.js';
-import { ArchiveAccount } from '../../application/archive-account.js';
-import { CreateAccount } from '../../application/create-account.js';
-import { DeleteAccount } from '../../application/delete-account.js';
-import { EnsureDefaultCashAccount } from '../../application/ensure-default-cash-account.js';
-import {
-  FakeHasher,
-  FixedClock,
-  InMemoryAccountRepository,
-  InMemoryRefreshTokenRepository,
-  InMemoryUserRepository,
-} from '../../application/fakes.js';
-import { GetAccount } from '../../application/get-account.js';
-import { GetCurrentUser } from '../../application/get-current-user.js';
-import { ListAccounts } from '../../application/list-accounts.js';
-import { LoginUser } from '../../application/login-user.js';
-import { LogoutUser } from '../../application/logout-user.js';
-import { RefreshSession } from '../../application/refresh-session.js';
-import { RegisterUser } from '../../application/register-user.js';
-import { UpdateAccount } from '../../application/update-account.js';
-import { UpdateProfile } from '../../application/update-profile.js';
-import { testEnv } from '../../config/env.js';
-import { CryptoIdGenerator } from '../security/crypto-id-generator.js';
-import { FastifyJwtTokenIssuer } from './fastify-jwt-token-issuer.js';
-
-async function startApp() {
-  const env = testEnv();
-  const users = new InMemoryUserRepository();
-  const refreshTokens = new InMemoryRefreshTokenRepository();
-  const accounts = new InMemoryAccountRepository();
-  const hasher = new FakeHasher();
-  const clock = new FixedClock(new Date('2026-09-19T20:00:00.000Z'));
-  const ids = new CryptoIdGenerator();
-  const app = await createServer(env);
-  const tokens = new FastifyJwtTokenIssuer(app.jwt, clock, 7 * 24 * 60 * 60 * 1000);
-  const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
-
-  await registerApi(app, {
-    env,
-    registerUser: new RegisterUser(
-      users,
-      refreshTokens,
-      hasher,
-      tokens,
-      ids,
-      clock,
-      ensureDefaultCash,
-    ),
-    loginUser: new LoginUser(users, refreshTokens, hasher, tokens, ids, clock),
-    refreshSession: new RefreshSession(users, refreshTokens, tokens, ids, clock),
-    logoutUser: new LogoutUser(refreshTokens, tokens, clock),
-    getCurrentUser: new GetCurrentUser(users),
-    updateProfile: new UpdateProfile(users),
-    listAccounts: new ListAccounts(accounts, ensureDefaultCash),
-    getAccount: new GetAccount(accounts),
-    createAccount: new CreateAccount(accounts, ids, clock),
-    updateAccount: new UpdateAccount(accounts, clock),
-    archiveAccount: new ArchiveAccount(accounts, clock),
-    deleteAccount: new DeleteAccount(accounts),
-  });
-
-  return app;
-}
+import { startTestApp } from './test-server.js';
 
 describe('auth HTTP', () => {
-  let app: Awaited<ReturnType<typeof startApp>>;
+  let app: Awaited<ReturnType<typeof startTestApp>>;
 
   afterEach(async () => {
     await app?.close();
   });
 
   it('registers, reads /me, and rejects a missing bearer', async () => {
-    app = await startApp();
+    app = await startTestApp(new Date('2026-09-19T20:00:00.000Z'));
 
     const health = await app.inject({ method: 'GET', url: '/health' });
     expect(health.statusCode).toBe(200);
@@ -121,7 +59,7 @@ describe('auth HTTP', () => {
   });
 
   it('hides whether the email exists on login failure', async () => {
-    app = await startApp();
+    app = await startTestApp();
     await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -146,7 +84,7 @@ describe('auth HTTP', () => {
   });
 
   it('rotates refresh tokens and logs out', async () => {
-    app = await startApp();
+    app = await startTestApp();
     const created = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -179,7 +117,7 @@ describe('auth HTTP', () => {
   });
 
   it('rejects a short password at the HTTP boundary', async () => {
-    app = await startApp();
+    app = await startTestApp();
     const response = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -190,7 +128,7 @@ describe('auth HTTP', () => {
   });
 
   it('allows PATCH in CORS preflight for /me', async () => {
-    app = await startApp();
+    app = await startTestApp();
     const preflight = await app.inject({
       method: 'OPTIONS',
       url: '/me',

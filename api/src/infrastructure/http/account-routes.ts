@@ -13,6 +13,7 @@ import type { ArchiveAccount } from '../../application/archive-account.js';
 import type { CreateAccount } from '../../application/create-account.js';
 import type { DeleteAccount } from '../../application/delete-account.js';
 import type { GetAccount } from '../../application/get-account.js';
+import type { GetAccountBalances } from '../../application/get-account-balances.js';
 import type { ListAccounts } from '../../application/list-accounts.js';
 import type { UpdateAccount } from '../../application/update-account.js';
 import type { Account } from '../../domain/account.js';
@@ -24,39 +25,44 @@ export type AccountRoutesDeps = {
   updateAccount: UpdateAccount;
   archiveAccount: ArchiveAccount;
   deleteAccount: DeleteAccount;
+  getAccountBalances: GetAccountBalances;
 };
 
 export async function registerAccountRoutes(app: FastifyInstance, deps: AccountRoutesDeps) {
   app.get('/accounts', { onRequest: [app.authenticate] }, async (request) => {
     const query = listAccountsQuerySchema.parse(request.query);
     const accounts = await deps.listAccounts.execute(request.user.sub, query);
-    return presentAccounts(accounts);
+    const balances = await deps.getAccountBalances.execute(request.user.sub);
+    return presentAccounts(accounts, balances);
   });
 
   app.get('/accounts/:id', { onRequest: [app.authenticate] }, async (request) => {
     const { id } = request.params as { id: string };
     const account = await deps.getAccount.execute(request.user.sub, id);
-    return presentAccount(account);
+    const balances = await deps.getAccountBalances.execute(request.user.sub);
+    return presentAccount(account, balances);
   });
 
   app.post('/accounts', { onRequest: [app.authenticate] }, async (request, reply) => {
     const body = createAccountBodySchema.parse(request.body);
     const account = await deps.createAccount.execute(request.user.sub, body);
-    return reply.code(201).send(presentAccount(account));
+    return reply.code(201).send(presentAccount(account, new Map()));
   });
 
   app.patch('/accounts/:id', { onRequest: [app.authenticate] }, async (request) => {
     const { id } = request.params as { id: string };
     const body = updateAccountBodySchema.parse(request.body);
     const account = await deps.updateAccount.execute(request.user.sub, id, body);
-    return presentAccount(account);
+    const balances = await deps.getAccountBalances.execute(request.user.sub);
+    return presentAccount(account, balances);
   });
 
   app.post('/accounts/:id/archive', { onRequest: [app.authenticate] }, async (request) => {
     const { id } = request.params as { id: string };
     const body = archiveAccountBodySchema.parse(request.body);
     const account = await deps.archiveAccount.execute(request.user.sub, id, body.archived);
-    return presentAccount(account);
+    const balances = await deps.getAccountBalances.execute(request.user.sub);
+    return presentAccount(account, balances);
   });
 
   app.delete('/accounts/:id', { onRequest: [app.authenticate] }, async (request, reply) => {
@@ -66,15 +72,17 @@ export async function registerAccountRoutes(app: FastifyInstance, deps: AccountR
   });
 }
 
-function presentAccount(account: Account): AccountDto {
-  return accountSchema.parse(toAccountDto(account));
+function presentAccount(account: Account, balances: Map<string, number>): AccountDto {
+  return accountSchema.parse(toAccountDto(account, balances.get(account.id) ?? 0));
 }
 
-function presentAccounts(accounts: Account[]) {
-  return accountsResponseSchema.parse({ accounts: accounts.map(toAccountDto) });
+function presentAccounts(accounts: Account[], balances: Map<string, number>) {
+  return accountsResponseSchema.parse({
+    accounts: accounts.map((account) => toAccountDto(account, balances.get(account.id) ?? 0)),
+  });
 }
 
-function toAccountDto(account: Account): AccountDto {
+function toAccountDto(account: Account, balanceCents: number): AccountDto {
   const base = {
     id: account.id,
     userId: account.userId,
@@ -88,7 +96,7 @@ function toAccountDto(account: Account): AccountDto {
     updatedAt: account.updatedAt.toISOString(),
     minBalanceCents: account.minBalanceCents,
     maxBalanceCents: account.maxBalanceCents,
-    balanceCents: 0,
+    balanceCents,
   };
 
   if (account.kind === 'cash') {

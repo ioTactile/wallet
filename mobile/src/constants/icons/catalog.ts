@@ -12,9 +12,11 @@ export const Icons = {
   list: { ios: 'list.bullet', android: 'format_list_bulleted', web: 'format_list_bulleted' },
   plus: { ios: 'plus', android: 'add', web: 'add' },
   trash: { ios: 'trash', android: 'delete', web: 'delete' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
+  transfer: { ios: 'arrow.left.arrow.right', android: 'swap_horiz', web: 'swap_horiz' },
 } as const satisfies Record<string, CrossPlatformIcon>;
 
 export type AppIconName = keyof typeof Icons;
 
-export type HeaderLeftIcon = Extract<AppIconName, 'menu' | 'chevronLeft'>;
+export type HeaderLeftIcon = Extract<AppIconName, 'menu' | 'chevronLeft' | 'close'>;
 export type HeaderRightIcon = Extract<AppIconName, 'bell' | 'checkmark' | 'plus'>;

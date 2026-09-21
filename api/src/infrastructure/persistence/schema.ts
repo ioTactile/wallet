@@ -43,3 +43,31 @@ export const accounts = pgTable(
   },
   (table) => [index('accounts_user_id_idx').on(table.userId)],
 );
+
+export const records = pgTable(
+  'records',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    kind: text('kind').notNull(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    counterpartyAccountId: uuid('counterparty_account_id').references(() => accounts.id),
+    categoryId: text('category_id'),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull(),
+    bookedAt: timestamp('booked_at', { withTimezone: true, mode: 'date' }).notNull(),
+    clearing: text('clearing').notNull(),
+    note: text('note').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [
+    index('records_user_id_booked_at_idx').on(table.userId, table.bookedAt),
+    index('records_account_id_idx').on(table.accountId),
+    index('records_counterparty_account_id_idx').on(table.counterpartyAccountId),
+  ],
+);
