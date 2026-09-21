@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateAccountBody, UpdateAccountBody } from '@wallet/shared';
 
-import { accountUseCases } from '@/application/use-cases';
+import { accountUseCases, bankUseCases } from '@/application/use-cases';
 import { accountQueryKeys } from '@/infrastructure/account-query-keys';
+import { recordQueryKeys } from '@/infrastructure/record-query-keys';
 
 export function useAccountList(includeArchived = false) {
   return useQuery({
@@ -55,6 +56,46 @@ export function useDeleteAccount() {
   const invalidate = useInvalidateAccounts();
   return useMutation({
     mutationFn: (id: string) => accountUseCases.delete.execute(id),
+    onSuccess: () => invalidate(),
+  });
+}
+
+function useInvalidateLedger() {
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: accountQueryKeys.all });
+    void queryClient.invalidateQueries({ queryKey: recordQueryKeys.all });
+  };
+}
+
+export function useConnectBank() {
+  const invalidate = useInvalidateLedger();
+  return useMutation({
+    mutationFn: () => bankUseCases.connectDemo.execute(),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useCompleteBankConnection() {
+  const invalidate = useInvalidateLedger();
+  return useMutation({
+    mutationFn: (connectionId: string) => bankUseCases.complete.execute(connectionId),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useSyncBankAccount() {
+  const invalidate = useInvalidateLedger();
+  return useMutation({
+    mutationFn: (id: string) => bankUseCases.sync.execute(id),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useDisconnectBankAccount() {
+  const invalidate = useInvalidateLedger();
+  return useMutation({
+    mutationFn: (id: string) => bankUseCases.disconnect.execute(id),
     onSuccess: () => invalidate(),
   });
 }

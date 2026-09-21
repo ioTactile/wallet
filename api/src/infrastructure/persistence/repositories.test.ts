@@ -6,9 +6,11 @@ import { Email } from '../../domain/email.js';
 import { RefreshToken } from '../../domain/refresh-token.js';
 import { User } from '../../domain/user.js';
 import { Account } from '../../domain/account.js';
+import { BankLink } from '../../domain/bank-link.js';
 import { LedgerRecord } from '../../domain/record.js';
 import { applyAuthSchema } from './apply-schema.js';
 import { DrizzleAccountRepository } from './drizzle-account-repository.js';
+import { DrizzleBankLinkRepository } from './drizzle-bank-link-repository.js';
 import { DrizzleRecordRepository } from './drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './drizzle-user-repository.js';
@@ -195,5 +197,70 @@ describe('drizzle repositories (pglite)', () => {
     await records.delete(transfer.id);
     expect(await records.getById(transfer.id)).toBeNull();
     expect(await records.existsForAccount(bank.id)).toBe(false);
+  });
+
+  it('persists a bank link, AIS account identity and unique external records', async () => {
+    client = new PGlite();
+    const db = drizzle(client, { schema });
+    await applyAuthSchema(db);
+    const users = new DrizzleUserRepository(db);
+    const links = new DrizzleBankLinkRepository(db);
+    const accounts = new DrizzleAccountRepository(db);
+    const records = new DrizzleRecordRepository(db);
+
+    const user = new User(
+      '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
+      Email.parse('jordan@example.com'),
+      'hashed:secret',
+      new Date('2026-09-19T20:00:00.000Z'),
+    );
+    await users.save(user);
+
+    const now = new Date('2026-09-20T10:00:00.000Z');
+    const link = BankLink.start({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      userId: user.id,
+      provider: 'sandbox',
+      providerConnectionId: 'sandbox:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      now,
+    }).activate(now);
+    await links.save(link);
+    expect((await links.getById(link.id))?.status).toBe('active');
+
+    const bank = Account.createBank({
+      id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      userId: user.id,
+      name: 'Compte courant',
+      now,
+      iban: 'FR7630001007941234567890185',
+      institutionName: 'Banque démo',
+      bankLinkId: link.id,
+      externalAccountId: 'sandbox-checking',
+    });
+    await accounts.save(bank);
+    expect((await accounts.listByBankLink(link.id)).map((account) => account.id)).toEqual([
+      bank.id,
+    ]);
+
+    const ais = LedgerRecord.createFromAis({
+      id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      userId: user.id,
+      accountId: bank.id,
+      signedAmountCents: -1299,
+      externalId: 'sandbox-tx-carrefour',
+      label: 'Carrefour',
+      now,
+    });
+    await records.save(ais);
+    expect((await records.findByExternalId(bank.id, 'sandbox-tx-carrefour'))?.note).toBe(
+      'Carrefour',
+    );
+
+    const recategorized = ais.recategorize(
+      'food_drinks.groceries',
+      new Date('2026-09-20T11:00:00.000Z'),
+    );
+    await records.save(recategorized);
+    expect((await records.getById(ais.id))?.categoryId).toBe('food_drinks.groceries');
   });
 });

@@ -41,6 +41,7 @@ function bankDto(overrides: Record<string, unknown> = {}) {
       name: 'BoursoBank',
       iban: 'FR7630001007941234567890185',
       institutionName: 'BoursoBank',
+      lastSyncedAt: null,
     }),
     ...overrides,
   };
@@ -63,6 +64,7 @@ describe('accountSchema', () => {
     if (parsed.kind !== 'bank') throw new Error('expected bank');
     expect(parsed.iban).toBeNull();
     expect(parsed.institutionName).toBeNull();
+    expect(parsed.lastSyncedAt).toBeNull();
   });
 
   it('requires balanceCents as an integer even before records exist', () => {

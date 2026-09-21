@@ -28,6 +28,15 @@ export class DrizzleAccountRepository implements AccountRepository {
     return rows[0] ? toAccount(rows[0]) : null;
   }
 
+  async listByBankLink(bankLinkId: string): Promise<Account[]> {
+    const rows = await this.db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.bankLinkId, bankLinkId))
+      .orderBy(asc(accounts.position), asc(accounts.createdAt));
+    return rows.map(toAccount);
+  }
+
   async save(account: Account): Promise<void> {
     await this.db
       .insert(accounts)
@@ -47,6 +56,9 @@ export class DrizzleAccountRepository implements AccountRepository {
         position: account.position,
         createdAt: account.createdAt,
         updatedAt: account.updatedAt,
+        bankLinkId: account.bankLinkId,
+        externalAccountId: account.externalAccountId,
+        lastSyncedAt: account.lastSyncedAt,
       })
       .onConflictDoUpdate({
         target: accounts.id,
@@ -62,6 +74,9 @@ export class DrizzleAccountRepository implements AccountRepository {
           maxBalanceCents: account.maxBalanceCents,
           position: account.position,
           updatedAt: account.updatedAt,
+          bankLinkId: account.bankLinkId,
+          externalAccountId: account.externalAccountId,
+          lastSyncedAt: account.lastSyncedAt,
         },
       });
   }
@@ -88,6 +103,9 @@ function toAccount(row: typeof accounts.$inferSelect): Account {
     maxBalanceCents: row.maxBalanceCents,
     iban: row.iban,
     institutionName: row.institutionName,
+    bankLinkId: row.bankLinkId,
+    externalAccountId: row.externalAccountId,
+    lastSyncedAt: row.lastSyncedAt,
   });
 }
 

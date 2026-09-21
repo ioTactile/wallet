@@ -1,13 +1,17 @@
 import { createServer, registerApi, type ApiDeps } from '../../app.js';
 import { ArchiveAccount } from '../../application/archive-account.js';
+import { CompleteBankConnection } from '../../application/complete-bank-connection.js';
 import { CreateAccount } from '../../application/create-account.js';
 import { CreateRecord } from '../../application/create-record.js';
 import { DeleteAccount } from '../../application/delete-account.js';
+import { DisconnectBankAccount } from '../../application/disconnect-bank-account.js';
 import { EnsureDefaultCashAccount } from '../../application/ensure-default-cash-account.js';
+import { FakeBankConnection } from '../../application/fake-bank-connection.js';
 import {
   FakeHasher,
   FixedClock,
   InMemoryAccountRepository,
+  InMemoryBankLinkRepository,
   InMemoryRecordRepository,
   InMemoryRefreshTokenRepository,
   InMemoryUserRepository,
@@ -21,6 +25,8 @@ import { LoginUser } from '../../application/login-user.js';
 import { LogoutUser } from '../../application/logout-user.js';
 import { RefreshSession } from '../../application/refresh-session.js';
 import { RegisterUser } from '../../application/register-user.js';
+import { StartBankConnection } from '../../application/start-bank-connection.js';
+import { SyncBankAccount } from '../../application/sync-bank-account.js';
 import { UpdateAccount } from '../../application/update-account.js';
 import { UpdateProfile } from '../../application/update-profile.js';
 import { UpdateRecord } from '../../application/update-record.js';
@@ -34,12 +40,15 @@ export async function startTestApp(now = new Date('2026-09-20T10:00:00.000Z')) {
   const refreshTokens = new InMemoryRefreshTokenRepository();
   const accounts = new InMemoryAccountRepository();
   const records = new InMemoryRecordRepository();
+  const links = new InMemoryBankLinkRepository();
   const hasher = new FakeHasher();
   const clock = new FixedClock(now);
   const ids = new CryptoIdGenerator();
+  const bank = new FakeBankConnection(env.PUBLIC_API_URL);
   const app = await createServer(env);
   const tokens = new FastifyJwtTokenIssuer(app.jwt, clock, 7 * 24 * 60 * 60 * 1000);
   const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
+  const syncBankAccount = new SyncBankAccount(accounts, records, links, bank, ids, clock);
 
   const deps: ApiDeps = {
     env,
@@ -69,6 +78,17 @@ export async function startTestApp(now = new Date('2026-09-20T10:00:00.000Z')) {
     createRecord: new CreateRecord(records, accounts, ids, clock),
     updateRecord: new UpdateRecord(records, accounts, clock),
     deleteRecord: new DeleteRecord(records),
+    startBankConnection: new StartBankConnection(links, bank, ids, clock),
+    completeBankConnection: new CompleteBankConnection(
+      links,
+      accounts,
+      bank,
+      ids,
+      clock,
+      syncBankAccount,
+    ),
+    syncBankAccount,
+    disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
   };
 
   await registerApi(app, deps);

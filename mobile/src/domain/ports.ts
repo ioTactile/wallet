@@ -85,3 +85,31 @@ export class RecordApiError extends Error {
     this.name = 'RecordApiError';
   }
 }
+
+export type StartBankConnectionResult = {
+  id: string;
+  authorizationUrl: string;
+};
+
+export type SyncBankAccountResult = {
+  importedCount: number;
+};
+
+export interface BankApi {
+  start(redirectUri: string): Promise<StartBankConnectionResult>;
+  complete(connectionId: string): Promise<Account[]>;
+  sync(accountId: string): Promise<SyncBankAccountResult>;
+  disconnect(accountId: string): Promise<Account>;
+}
+
+export interface BankAuthSession {
+  redirectUri(): string;
+  open(authorizationUrl: string, redirectUri: string): Promise<'success' | 'cancel'>;
+}
+
+export class BankApiError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'BankApiError';
+  }
+}

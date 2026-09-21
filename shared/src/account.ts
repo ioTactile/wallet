@@ -28,6 +28,12 @@ export function isHexColor(value: string): boolean {
   return HEX_COLOR_PATTERN.test(value);
 }
 
+/** Default category for AIS expenses until the user recategorizes. */
+export const AIS_EXPENSE_CATEGORY_ID = 'others.missing';
+
+/** Default category for AIS income until the user recategorizes. */
+export const AIS_INCOME_CATEGORY_ID = 'income';
+
 export function canSyncFromBank(kind: AccountKind): boolean {
   return kind === 'bank';
 }

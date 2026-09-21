@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_ACCOUNT_CURRENCY } from '@wallet/shared';
+import {
+  AIS_EXPENSE_CATEGORY_ID,
+  AIS_INCOME_CATEGORY_ID,
+  DEFAULT_ACCOUNT_CURRENCY,
+} from '@wallet/shared';
 
-import { InvalidRecord } from './errors.js';
+import { CannotMutateAisRecord, InvalidRecord } from './errors.js';
 import { LedgerRecord } from './record.js';
 
 const NOW = new Date('2026-09-20T10:00:00.000Z');
@@ -90,5 +94,63 @@ describe('LedgerRecord', () => {
       now: NOW,
     });
     expect(() => transfer.recategorize('food_drinks', NOW)).toThrow(InvalidRecord);
+  });
+
+  it('imports an AIS expense as uncategorized without allowing structural edits', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const record = LedgerRecord.createFromAis({
+      id: 'ais-1',
+      userId: 'user-1',
+      accountId: 'bank-1',
+      signedAmountCents: -1299,
+      externalId: 'tx-1',
+      label: '  Carrefour ',
+      now: NOW,
+    });
+    expect(record.kind).toBe('expense');
+    expect(record.amountCents).toBe(1299);
+    expect(record.categoryId).toBe(AIS_EXPENSE_CATEGORY_ID);
+    expect(record.externalId).toBe('tx-1');
+    expect(record.isAis).toBe(true);
+    expect(record.note).toBe('Carrefour');
+
+    const recategorized = record.recategorize('food_drinks.groceries', later);
+    expect(recategorized.categoryId).toBe('food_drinks.groceries');
+    expect(record.setNote('Courses', later).note).toBe('Courses');
+    expect(() => record.setAmount(10, later)).toThrow(CannotMutateAisRecord);
+    expect(() => record.setBookedAt(later, later)).toThrow(CannotMutateAisRecord);
+    expect(() => record.moveToAccount('cash-1', later)).toThrow(CannotMutateAisRecord);
+  });
+
+  it('imports AIS income and refreshes the bank snapshot without touching category', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const record = LedgerRecord.createFromAis({
+      id: 'ais-2',
+      userId: 'user-1',
+      accountId: 'bank-1',
+      signedAmountCents: 250_00,
+      externalId: 'tx-2',
+      label: 'Salaire',
+      clearing: 'uncleared',
+      now: NOW,
+    });
+    expect(record.kind).toBe('income');
+    expect(record.categoryId).toBe(AIS_INCOME_CATEGORY_ID);
+    expect(record.clearing).toBe('uncleared');
+
+    const kept = record.recategorize('income.wage_invoices', later);
+    const synced = kept.applyAisSnapshot(
+      {
+        signedAmountCents: 251_00,
+        bookedAt: later,
+        pending: false,
+        label: 'Salaire net',
+      },
+      later,
+    );
+    expect(synced.amountCents).toBe(251_00);
+    expect(synced.clearing).toBe('cleared');
+    expect(synced.note).toBe('Salaire net');
+    expect(synced.categoryId).toBe('income.wage_invoices');
   });
 });

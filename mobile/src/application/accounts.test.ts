@@ -115,7 +115,7 @@ describe('accounts', () => {
     expect(repo.accounts).toHaveLength(2);
   });
 
-  it('disconnects a bank account by deleting it', async () => {
+  it('deletes a bank account without records', async () => {
     const { repo, delete: remove } = useCases();
     repo.accounts = [makeCashAccount(), makeBankAccount()];
 

@@ -1,4 +1,5 @@
 import type { Account } from './account.js';
+import type { BankLink } from './bank-link.js';
 import type { Email } from './email.js';
 import type { LedgerRecord } from './record.js';
 import type { IssuedRefresh, RefreshToken } from './refresh-token.js';
@@ -12,6 +13,7 @@ export interface UserRepository {
 
 export interface AccountRepository {
   listByUser(userId: string, options?: { includeArchived?: boolean }): Promise<Account[]>;
+  listByBankLink(bankLinkId: string): Promise<Account[]>;
   getById(id: string): Promise<Account | null>;
   save(account: Account): Promise<void>;
   delete(id: string): Promise<void>;
@@ -19,10 +21,16 @@ export interface AccountRepository {
 
 export interface RecordRepository {
   getById(id: string): Promise<LedgerRecord | null>;
+  findByExternalId(accountId: string, externalId: string): Promise<LedgerRecord | null>;
   save(record: LedgerRecord): Promise<void>;
   delete(id: string): Promise<void>;
   listByUser(userId: string): Promise<LedgerRecord[]>;
   existsForAccount(accountId: string): Promise<boolean>;
+}
+
+export interface BankLinkRepository {
+  getById(id: string): Promise<BankLink | null>;
+  save(link: BankLink): Promise<void>;
 }
 
 export interface RefreshTokenRepository {

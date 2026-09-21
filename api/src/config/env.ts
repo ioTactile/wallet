@@ -10,6 +10,7 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().default('*'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  PUBLIC_API_URL: z.url().default('http://127.0.0.1:3000'),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -25,6 +26,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     CORS_ORIGIN: source.CORS_ORIGIN,
     RATE_LIMIT_MAX: source.RATE_LIMIT_MAX,
     AUTH_RATE_LIMIT_MAX: source.AUTH_RATE_LIMIT_MAX,
+    PUBLIC_API_URL: source.PUBLIC_API_URL,
   });
 }
 
@@ -38,6 +40,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     CORS_ORIGIN: '*',
     RATE_LIMIT_MAX: 10_000,
     AUTH_RATE_LIMIT_MAX: 10_000,
+    PUBLIC_API_URL: 'http://127.0.0.1:3000',
     ...overrides,
   };
 }

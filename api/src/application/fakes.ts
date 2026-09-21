@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 
 import type { Account } from '../domain/account.js';
+import type { BankLink } from '../domain/bank-link.js';
 import type { Email } from '../domain/email.js';
 import type {
   AccountRepository,
+  BankLinkRepository,
   Clock,
   Hasher,
   IdGenerator,
@@ -31,6 +33,12 @@ export class InMemoryAccountRepository implements AccountRepository {
     return this.accounts.get(id) ?? null;
   }
 
+  async listByBankLink(bankLinkId: string): Promise<Account[]> {
+    return [...this.accounts.values()]
+      .filter((account) => account.bankLinkId === bankLinkId)
+      .sort((a, b) => a.position - b.position || a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
   async save(account: Account): Promise<void> {
     this.accounts.set(account.id, account);
   }
@@ -45,6 +53,14 @@ export class InMemoryRecordRepository implements RecordRepository {
 
   async getById(id: string): Promise<LedgerRecord | null> {
     return this.records.get(id) ?? null;
+  }
+
+  async findByExternalId(accountId: string, externalId: string): Promise<LedgerRecord | null> {
+    return (
+      [...this.records.values()].find(
+        (record) => record.accountId === accountId && record.externalId === externalId,
+      ) ?? null
+    );
   }
 
   async save(record: LedgerRecord): Promise<void> {
@@ -81,6 +97,18 @@ export class InMemoryUserRepository implements UserRepository {
 
   async save(user: User): Promise<void> {
     this.users.set(user.id, user);
+  }
+}
+
+export class InMemoryBankLinkRepository implements BankLinkRepository {
+  private readonly links = new Map<string, BankLink>();
+
+  async getById(id: string): Promise<BankLink | null> {
+    return this.links.get(id) ?? null;
+  }
+
+  async save(link: BankLink): Promise<void> {
+    this.links.set(link.id, link);
   }
 }
 

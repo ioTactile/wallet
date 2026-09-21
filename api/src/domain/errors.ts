@@ -91,3 +91,48 @@ export class CannotDeleteAccountWithRecords extends DomainError {
     super('cannot_delete_account_with_records', 'Cannot delete an account that has records');
   }
 }
+
+export class InvalidBankLink extends DomainError {
+  constructor(message = 'Invalid bank link') {
+    super('invalid_bank_link', message);
+  }
+}
+
+export class BankLinkNotFound extends DomainError {
+  constructor() {
+    super('bank_link_not_found', 'Bank link not found');
+  }
+}
+
+export class BankLinkNotCompletable extends DomainError {
+  constructor() {
+    super('bank_link_not_completable', 'Bank link cannot be completed');
+  }
+}
+
+export class CannotSyncAccount extends DomainError {
+  constructor(message = 'Cannot sync this account') {
+    super('cannot_sync_account', message);
+  }
+}
+
+export class CannotMutateAisRecord extends DomainError {
+  constructor() {
+    super(
+      'cannot_mutate_ais_record',
+      'Bank-imported records cannot change amount, date or account',
+    );
+  }
+}
+
+export class CannotDeleteAisRecord extends DomainError {
+  constructor() {
+    super('cannot_delete_ais_record', 'Bank-imported records cannot be deleted');
+  }
+}
+
+export class CannotDisconnectAccount extends DomainError {
+  constructor() {
+    super('cannot_disconnect_account', 'Only bank accounts can be disconnected');
+  }
+}

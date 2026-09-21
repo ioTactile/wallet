@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connexion bancaire</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 2rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="msg">Connexion réussie. Cette fenêtre va se fermer.</p>
+    <script>
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var connectionId = (params.get('connectionId') || '').trim();
+        var signal = { type: 'wallet.bankAuth', connectionId: connectionId };
+        if (connectionId) {
+          try {
+            localStorage.setItem('wallet.bankAuth.complete', JSON.stringify(signal));
+          } catch (error) {}
+          try {
+            var channel = new BroadcastChannel('wallet.bankAuth');
+            channel.postMessage(signal);
+            channel.close();
+          } catch (error) {}
+          try {
+            if (window.opener) {
+              window.opener.postMessage(signal, window.location.origin);
+            }
+          } catch (error) {}
+        }
+        window.close();
+        document.getElementById('msg').textContent = 'Vous pouvez fermer cette fenêtre.';
+      })();
+    </script>
+  </body>
+</html>

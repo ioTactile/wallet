@@ -24,6 +24,9 @@ export type AccountProps = {
   maxBalanceCents: number | null;
   iban?: string | null;
   institutionName?: string | null;
+  bankLinkId?: string | null;
+  externalAccountId?: string | null;
+  lastSyncedAt?: Date | null;
 };
 
 type CreateAccountInput = {
@@ -55,6 +58,9 @@ export class Account {
   readonly maxBalanceCents: number | null;
   readonly iban: string | null;
   readonly institutionName: string | null;
+  readonly bankLinkId: string | null;
+  readonly externalAccountId: string | null;
+  readonly lastSyncedAt: Date | null;
 
   constructor(props: AccountProps) {
     this.id = props.id;
@@ -72,10 +78,23 @@ export class Account {
     this.maxBalanceCents = normalizeCents(props.maxBalanceCents);
     this.iban = normalizeOptionalText(props.iban, 34);
     this.institutionName = normalizeOptionalText(props.institutionName, 100);
+    this.bankLinkId = normalizeOptionalText(props.bankLinkId, 128);
+    this.externalAccountId = normalizeOptionalText(props.externalAccountId, 128);
+    this.lastSyncedAt = props.lastSyncedAt ?? null;
     assertId(this.id);
     assertBalanceAlerts(this.minBalanceCents, this.maxBalanceCents);
-    if (this.kind === 'cash' && (this.iban !== null || this.institutionName !== null)) {
+    if (
+      this.kind === 'cash' &&
+      (this.iban !== null ||
+        this.institutionName !== null ||
+        this.bankLinkId !== null ||
+        this.externalAccountId !== null ||
+        this.lastSyncedAt !== null)
+    ) {
       throw new AccountKindMismatch();
+    }
+    if ((this.bankLinkId == null) !== (this.externalAccountId == null)) {
+      throw new InvalidAccount('Bank link and external account id must be set together');
     }
   }
 
@@ -88,12 +107,21 @@ export class Account {
   }
 
   static createBank(
-    input: CreateAccountInput & { iban?: string | null; institutionName?: string | null },
+    input: CreateAccountInput & {
+      iban?: string | null;
+      institutionName?: string | null;
+      bankLinkId?: string | null;
+      externalAccountId?: string | null;
+      lastSyncedAt?: Date | null;
+    },
   ): Account {
     return new Account({
       ...createDefaults(input, 'bank'),
       iban: input.iban ?? null,
       institutionName: input.institutionName ?? null,
+      bankLinkId: input.bankLinkId ?? null,
+      externalAccountId: input.externalAccountId ?? null,
+      lastSyncedAt: input.lastSyncedAt ?? null,
     });
   }
 
@@ -122,6 +150,13 @@ export class Account {
       throw new AccountKindMismatch();
     }
     return this.with({ iban, institutionName }, now);
+  }
+
+  markSynced(now: Date): Account {
+    if (this.kind !== 'bank') {
+      throw new AccountKindMismatch();
+    }
+    return this.with({ lastSyncedAt: now }, now);
   }
 
   archive(now: Date): Account {
@@ -155,6 +190,9 @@ export class Account {
       maxBalanceCents: this.maxBalanceCents,
       iban: this.iban,
       institutionName: this.institutionName,
+      bankLinkId: this.bankLinkId,
+      externalAccountId: this.externalAccountId,
+      lastSyncedAt: this.lastSyncedAt,
       ...overrides,
     });
   }
@@ -175,6 +213,9 @@ function createDefaults(input: CreateAccountInput, kind: AccountKind): AccountPr
     updatedAt: input.now,
     minBalanceCents: input.minBalanceCents ?? null,
     maxBalanceCents: input.maxBalanceCents ?? null,
+    bankLinkId: null,
+    externalAccountId: null,
+    lastSyncedAt: null,
   };
 }
 

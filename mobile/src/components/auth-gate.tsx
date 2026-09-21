@@ -13,6 +13,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (pathname === '/bank/callback') {
+      return;
+    }
+
     const onPin = pathname === '/pin';
     const onWelcome = pathname === '/welcome';
     const onSignIn = pathname === '/sign-in';

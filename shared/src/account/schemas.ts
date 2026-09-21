@@ -61,6 +61,7 @@ export const bankAccountSchema = z.object({
   kind: z.literal('bank'),
   iban: ibanSchema.nullable(),
   institutionName: institutionNameSchema.nullable(),
+  lastSyncedAt: z.iso.datetime().nullable(),
 });
 
 export const accountSchema = z.discriminatedUnion('kind', [cashAccountSchema, bankAccountSchema]);

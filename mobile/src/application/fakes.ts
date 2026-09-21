@@ -72,6 +72,7 @@ export function makeBankAccount(
     balanceCents: 0,
     iban: 'FR7630001007941234567890185',
     institutionName: 'BoursoBank',
+    lastSyncedAt: null,
     ...overrides,
   };
 }
@@ -119,6 +120,7 @@ export class InMemoryAccountRepository implements AccountRepository {
             kind: 'bank',
             iban: body.iban ?? null,
             institutionName: body.institutionName ?? null,
+            lastSyncedAt: null,
           }
         : { ...base, kind: 'cash' };
     this.accounts.push(account);

@@ -4,6 +4,7 @@ import {
   archiveAccountBodySchema,
   createAccountBodySchema,
   listAccountsQuerySchema,
+  syncBankAccountResponseSchema,
   updateAccountBodySchema,
   type Account as AccountDto,
 } from '@wallet/shared';
@@ -12,9 +13,11 @@ import type { FastifyInstance } from 'fastify';
 import type { ArchiveAccount } from '../../application/archive-account.js';
 import type { CreateAccount } from '../../application/create-account.js';
 import type { DeleteAccount } from '../../application/delete-account.js';
+import type { DisconnectBankAccount } from '../../application/disconnect-bank-account.js';
 import type { GetAccount } from '../../application/get-account.js';
 import type { GetAccountBalances } from '../../application/get-account-balances.js';
 import type { ListAccounts } from '../../application/list-accounts.js';
+import type { SyncBankAccount } from '../../application/sync-bank-account.js';
 import type { UpdateAccount } from '../../application/update-account.js';
 import type { Account } from '../../domain/account.js';
 
@@ -26,6 +29,8 @@ export type AccountRoutesDeps = {
   archiveAccount: ArchiveAccount;
   deleteAccount: DeleteAccount;
   getAccountBalances: GetAccountBalances;
+  syncBankAccount: SyncBankAccount;
+  disconnectBankAccount: DisconnectBankAccount;
 };
 
 export async function registerAccountRoutes(app: FastifyInstance, deps: AccountRoutesDeps) {
@@ -70,13 +75,26 @@ export async function registerAccountRoutes(app: FastifyInstance, deps: AccountR
     await deps.deleteAccount.execute(request.user.sub, id);
     return reply.code(204).send();
   });
+
+  app.post('/accounts/:id/sync', { onRequest: [app.authenticate] }, async (request) => {
+    const { id } = request.params as { id: string };
+    const result = await deps.syncBankAccount.execute(request.user.sub, id);
+    return syncBankAccountResponseSchema.parse(result);
+  });
+
+  app.post('/accounts/:id/disconnect', { onRequest: [app.authenticate] }, async (request) => {
+    const { id } = request.params as { id: string };
+    const account = await deps.disconnectBankAccount.execute(request.user.sub, id);
+    const balances = await deps.getAccountBalances.execute(request.user.sub);
+    return presentAccount(account, balances);
+  });
 }
 
-function presentAccount(account: Account, balances: Map<string, number>): AccountDto {
+export function presentAccount(account: Account, balances: Map<string, number>): AccountDto {
   return accountSchema.parse(toAccountDto(account, balances.get(account.id) ?? 0));
 }
 
-function presentAccounts(accounts: Account[], balances: Map<string, number>) {
+export function presentAccounts(accounts: Account[], balances: Map<string, number>) {
   return accountsResponseSchema.parse({
     accounts: accounts.map((account) => toAccountDto(account, balances.get(account.id) ?? 0)),
   });
@@ -108,5 +126,6 @@ function toAccountDto(account: Account, balanceCents: number): AccountDto {
     kind: 'bank',
     iban: account.iban,
     institutionName: account.institutionName,
+    lastSyncedAt: account.lastSyncedAt?.toISOString() ?? null,
   };
 }

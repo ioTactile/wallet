@@ -74,4 +74,39 @@ export async function applyAuthSchema(db: AppDatabase): Promise<void> {
   await db.execute(`
     CREATE INDEX IF NOT EXISTS records_counterparty_account_id_idx ON records (counterparty_account_id)
   `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS bank_links (
+      id uuid PRIMARY KEY,
+      user_id uuid NOT NULL REFERENCES users(id),
+      provider text NOT NULL,
+      provider_connection_id text NOT NULL,
+      status text NOT NULL,
+      last_synced_at timestamptz,
+      created_at timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL
+    )
+  `);
+  await db.execute(`
+    CREATE INDEX IF NOT EXISTS bank_links_user_id_idx ON bank_links (user_id)
+  `);
+  await db.execute(`
+    ALTER TABLE accounts
+      ADD COLUMN IF NOT EXISTS bank_link_id uuid REFERENCES bank_links(id),
+      ADD COLUMN IF NOT EXISTS external_account_id text,
+      ADD COLUMN IF NOT EXISTS last_synced_at timestamptz
+  `);
+  await db.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS accounts_bank_link_external_uidx
+      ON accounts (bank_link_id, external_account_id)
+      WHERE bank_link_id IS NOT NULL
+  `);
+  await db.execute(`
+    ALTER TABLE records
+      ADD COLUMN IF NOT EXISTS external_id text
+  `);
+  await db.execute(`
+    CREATE UNIQUE INDEX IF NOT EXISTS records_account_external_id_uidx
+      ON records (account_id, external_id)
+      WHERE external_id IS NOT NULL
+  `);
 }

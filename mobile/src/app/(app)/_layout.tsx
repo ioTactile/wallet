@@ -5,6 +5,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="accounts" />
+      <Stack.Screen name="bank/callback" />
       <Stack.Screen name="records/index" />
       <Stack.Screen name="records/[id]" />
       <Stack.Screen name="records/new" options={{ presentation: 'modal' }} />

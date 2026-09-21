@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
+import { canSyncFromBank, DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import type { EventArg, NavigationAction } from 'expo-router/react-navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -25,6 +25,7 @@ import {
   accountErrorKey,
   detailScreenStatus,
   editAccountFormSchema,
+  lastSyncedLabel,
   toEditAccountFormValues,
   toUpdateAccountBody,
   type AccountConfirmKind,
@@ -34,11 +35,13 @@ import {
   useAccount,
   useArchiveAccount,
   useDeleteAccount,
+  useDisconnectBankAccount,
+  useSyncBankAccount,
   useUpdateAccount,
 } from '@/screens/accounts/use-account-queries';
 
 export function EditAccountScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const navigation = useNavigation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,6 +50,8 @@ export function EditAccountScreen() {
   const update = useUpdateAccount();
   const archive = useArchiveAccount();
   const remove = useDeleteAccount();
+  const disconnect = useDisconnectBankAccount();
+  const sync = useSyncBankAccount();
   const [error, setError] = useState<string | null>(null);
   const allowLeave = useRef(false);
   const pendingLeave = useRef<NavigationAction | null>(null);
@@ -79,7 +84,13 @@ export function EditAccountScreen() {
   }, [account, reset]);
 
   const dirty = Boolean(account) && isDirty;
-  const pending = isSubmitting || update.isPending || archive.isPending || remove.isPending;
+  const pending =
+    isSubmitting ||
+    update.isPending ||
+    archive.isPending ||
+    remove.isPending ||
+    disconnect.isPending ||
+    sync.isPending;
 
   const confirmSheet = useConfirmSheet<AccountConfirmKind>({
     copy: (kind) => {
@@ -102,11 +113,15 @@ export function EditAccountScreen() {
       if (!account) return;
       setError(null);
       try {
-        await remove.mutateAsync(account.id);
+        if (kind === 'disconnect') {
+          await disconnect.mutateAsync(account.id);
+        } else {
+          await remove.mutateAsync(account.id);
+        }
         allowLeave.current = true;
         router.replace('/accounts');
       } catch (cause) {
-        setError(t(accountErrorKey(cause, 'delete')));
+        setError(t(accountErrorKey(cause, kind === 'disconnect' ? 'disconnect' : 'delete')));
       }
     },
   });
@@ -150,6 +165,16 @@ export function EditAccountScreen() {
   function openConfirm(kind: Exclude<AccountConfirmKind, 'unsaved'>) {
     if (pending || !account) return;
     confirmSheet.open(kind);
+  }
+
+  async function onSync() {
+    if (pending || !account) return;
+    setError(null);
+    try {
+      await sync.mutateAsync(account.id);
+    } catch (cause) {
+      setError(t(accountErrorKey(cause, 'sync')));
+    }
   }
 
   return (
@@ -213,6 +238,14 @@ export function EditAccountScreen() {
               <Text style={styles.value} selectable>
                 {account.institutionName ?? '—'}
               </Text>
+              {lastSyncedLabel(account.lastSyncedAt, i18n.language) ? (
+                <>
+                  <Text style={styles.label}>{t('account.lastSynced')}</Text>
+                  <Text style={styles.value} selectable>
+                    {lastSyncedLabel(account.lastSyncedAt, i18n.language)}
+                  </Text>
+                </>
+              ) : null}
             </>
           ) : null}
           <Text style={styles.label}>{t('account.currency')}</Text>
@@ -284,16 +317,32 @@ export function EditAccountScreen() {
               {error}
             </Text>
           ) : null}
-          <Pressable
-            disabled={pending}
-            onPress={() => openConfirm('delete')}
-            style={[styles.destructive, { borderColor: colors.danger }]}
-          >
-            <Text style={[styles.destructiveLabel, { color: colors.danger }]}>
-              {t('account.delete')}
-            </Text>
-          </Pressable>
-          {account.kind === 'bank' ? (
+          {account.kind === 'bank' &&
+          canSyncFromBank(account.kind) &&
+          account.archivedAt === null ? (
+            <Pressable
+              disabled={pending}
+              onPress={() => {
+                void onSync();
+              }}
+              style={[styles.sync, { backgroundColor: colors.brand }]}
+            >
+              <Text style={[styles.destructiveLabel, { color: colors.onBrand }]}>
+                {t('account.sync')}
+              </Text>
+            </Pressable>
+          ) : null}
+          {account.kind === 'cash' ? (
+            <Pressable
+              disabled={pending}
+              onPress={() => openConfirm('delete')}
+              style={[styles.destructive, { borderColor: colors.danger }]}
+            >
+              <Text style={[styles.destructiveLabel, { color: colors.danger }]}>
+                {t('account.delete')}
+              </Text>
+            </Pressable>
+          ) : (
             <Pressable
               disabled={pending}
               onPress={() => openConfirm('disconnect')}
@@ -303,7 +352,7 @@ export function EditAccountScreen() {
                 {t('account.disconnect')}
               </Text>
             </Pressable>
-          ) : null}
+          )}
         </ScrollView>
       ) : null}
       <ConfirmSheet
@@ -383,6 +432,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  sync: {
+    marginTop: Spacing.three,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   destructiveLabel: {
     fontWeight: '700',

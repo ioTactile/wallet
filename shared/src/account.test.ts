@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ACCOUNT_COLORS,
   ACCOUNT_KINDS,
+  AIS_EXPENSE_CATEGORY_ID,
+  AIS_INCOME_CATEGORY_ID,
   DEFAULT_ACCOUNT_COLOR,
   DEFAULT_ACCOUNT_CURRENCY,
   DEFAULT_CASH_ACCOUNT_ID,
@@ -40,6 +42,8 @@ describe('accounts', () => {
     expect(canSyncFromBank('cash')).toBe(false);
     expect(isManualLedger('bank')).toBe(false);
     expect(canSyncFromBank('bank')).toBe(true);
+    expect(AIS_EXPENSE_CATEGORY_ID).toBe('others.missing');
+    expect(AIS_INCOME_CATEGORY_ID).toBe('income');
   });
 
   it('allows a PFM transfer between two distinct accounts, including cash', () => {

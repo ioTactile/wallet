@@ -1,4 +1,6 @@
 import {
+  AIS_EXPENSE_CATEGORY_ID,
+  AIS_INCOME_CATEGORY_ID,
   DEFAULT_ACCOUNT_CURRENCY,
   RECORD_CLEARING,
   RECORD_KINDS,
@@ -8,7 +10,7 @@ import {
   type RecordKind,
 } from '@wallet/shared';
 
-import { InvalidRecord } from './errors.js';
+import { CannotMutateAisRecord, InvalidRecord } from './errors.js';
 
 export type LedgerRecordProps = {
   id: string;
@@ -24,6 +26,7 @@ export type LedgerRecordProps = {
   note: string;
   createdAt: Date;
   updatedAt: Date;
+  externalId?: string | null;
 };
 
 type CreateLedgerInput = {
@@ -52,6 +55,7 @@ export class LedgerRecord {
   readonly note: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  readonly externalId: string | null;
 
   constructor(props: LedgerRecordProps) {
     this.id = assertId(props.id);
@@ -69,7 +73,12 @@ export class LedgerRecord {
     this.note = normalizeNote(props.note);
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
+    this.externalId = normalizeExternalId(props.externalId);
     assertShape(this);
+  }
+
+  get isAis(): boolean {
+    return this.externalId != null;
   }
 
   static createExpense(input: CreateLedgerInput & { categoryId: string }): LedgerRecord {
@@ -97,6 +106,37 @@ export class LedgerRecord {
       note: input.note ?? '',
       createdAt: input.now,
       updatedAt: input.now,
+      externalId: null,
+    });
+  }
+
+  static createFromAis(
+    input: Omit<CreateLedgerInput, 'amountCents'> & {
+      externalId: string;
+      signedAmountCents: number;
+      label: string;
+    },
+  ): LedgerRecord {
+    if (!Number.isInteger(input.signedAmountCents) || input.signedAmountCents === 0) {
+      throw new InvalidRecord('Invalid AIS amount');
+    }
+    const kind: Exclude<RecordKind, 'transfer'> =
+      input.signedAmountCents < 0 ? 'expense' : 'income';
+    return new LedgerRecord({
+      id: input.id,
+      userId: input.userId,
+      kind,
+      accountId: input.accountId,
+      counterpartyAccountId: null,
+      categoryId: kind === 'expense' ? AIS_EXPENSE_CATEGORY_ID : AIS_INCOME_CATEGORY_ID,
+      amountCents: Math.abs(input.signedAmountCents),
+      currency: input.currency ?? DEFAULT_ACCOUNT_CURRENCY,
+      bookedAt: input.bookedAt ?? input.now,
+      clearing: input.clearing ?? 'cleared',
+      note: input.label,
+      createdAt: input.now,
+      updatedAt: input.now,
+      externalId: input.externalId,
     });
   }
 
@@ -108,6 +148,7 @@ export class LedgerRecord {
   }
 
   moveToAccount(accountId: string, now: Date): LedgerRecord {
+    this.assertManualMutation();
     if (this.kind === 'transfer') {
       throw new InvalidRecord('Use setTransferAccounts for transfers');
     }
@@ -115,6 +156,7 @@ export class LedgerRecord {
   }
 
   setTransferAccounts(fromAccountId: string, toAccountId: string, now: Date): LedgerRecord {
+    this.assertManualMutation();
     if (this.kind !== 'transfer') {
       throw new InvalidRecord('Only transfers have two accounts');
     }
@@ -122,19 +164,48 @@ export class LedgerRecord {
   }
 
   setAmount(amountCents: number, now: Date): LedgerRecord {
+    this.assertManualMutation();
     return this.with({ amountCents }, now);
   }
 
   setBookedAt(bookedAt: Date, now: Date): LedgerRecord {
+    this.assertManualMutation();
     return this.with({ bookedAt }, now);
   }
 
   setClearing(clearing: RecordClearing, now: Date): LedgerRecord {
+    this.assertManualMutation();
     return this.with({ clearing }, now);
   }
 
   setNote(note: string, now: Date): LedgerRecord {
     return this.with({ note }, now);
+  }
+
+  applyAisSnapshot(
+    snapshot: {
+      signedAmountCents: number;
+      bookedAt: Date;
+      pending: boolean;
+      label: string;
+    },
+    now: Date,
+  ): LedgerRecord {
+    if (!this.isAis) {
+      throw new InvalidRecord('Only AIS records can apply a bank snapshot');
+    }
+    if (!Number.isInteger(snapshot.signedAmountCents) || snapshot.signedAmountCents === 0) {
+      throw new InvalidRecord('Invalid AIS amount');
+    }
+    return this.with(
+      {
+        amountCents: Math.abs(snapshot.signedAmountCents),
+        bookedAt: snapshot.bookedAt,
+        clearing: snapshot.pending ? 'uncleared' : 'cleared',
+        note: snapshot.label,
+      },
+      now,
+    );
   }
 
   private static createLedger(
@@ -155,7 +226,14 @@ export class LedgerRecord {
       note: input.note ?? '',
       createdAt: input.now,
       updatedAt: input.now,
+      externalId: null,
     });
+  }
+
+  private assertManualMutation(): void {
+    if (this.isAis) {
+      throw new CannotMutateAisRecord();
+    }
   }
 
   private with(overrides: Partial<LedgerRecordProps>, now: Date): LedgerRecord {
@@ -173,6 +251,7 @@ export class LedgerRecord {
       note: this.note,
       createdAt: this.createdAt,
       updatedAt: now,
+      externalId: this.externalId,
       ...overrides,
     });
   }
@@ -221,6 +300,17 @@ function normalizeNote(note: string): string {
   return value;
 }
 
+function normalizeExternalId(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    throw new InvalidRecord('Invalid external id');
+  }
+  return trimmed;
+}
+
 function assertShape(record: LedgerRecord): void {
   if (record.kind === 'transfer') {
     if (record.categoryId != null) {
@@ -231,6 +321,9 @@ function assertShape(record: LedgerRecord): void {
     }
     if (record.accountId === record.counterpartyAccountId) {
       throw new InvalidRecord('Transfer accounts must differ');
+    }
+    if (record.externalId != null) {
+      throw new InvalidRecord('Transfers cannot come from AIS');
     }
     return;
   }

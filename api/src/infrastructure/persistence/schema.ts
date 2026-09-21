@@ -1,4 +1,14 @@
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey(),
@@ -20,6 +30,23 @@ export const refreshTokens = pgTable('refresh_tokens', {
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
 });
 
+export const bankLinks = pgTable(
+  'bank_links',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    provider: text('provider').notNull(),
+    providerConnectionId: text('provider_connection_id').notNull(),
+    status: text('status').notNull(),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true, mode: 'date' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [index('bank_links_user_id_idx').on(table.userId)],
+);
+
 export const accounts = pgTable(
   'accounts',
   {
@@ -40,8 +67,16 @@ export const accounts = pgTable(
     position: integer('position').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+    bankLinkId: uuid('bank_link_id').references(() => bankLinks.id),
+    externalAccountId: text('external_account_id'),
+    lastSyncedAt: timestamp('last_synced_at', { withTimezone: true, mode: 'date' }),
   },
-  (table) => [index('accounts_user_id_idx').on(table.userId)],
+  (table) => [
+    index('accounts_user_id_idx').on(table.userId),
+    uniqueIndex('accounts_bank_link_external_uidx')
+      .on(table.bankLinkId, table.externalAccountId)
+      .where(sql`${table.bankLinkId} is not null`),
+  ],
 );
 
 export const records = pgTable(
@@ -64,10 +99,14 @@ export const records = pgTable(
     note: text('note').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
+    externalId: text('external_id'),
   },
   (table) => [
     index('records_user_id_booked_at_idx').on(table.userId, table.bookedAt),
     index('records_account_id_idx').on(table.accountId),
     index('records_counterparty_account_id_idx').on(table.counterpartyAccountId),
+    uniqueIndex('records_account_external_id_uidx')
+      .on(table.accountId, table.externalId)
+      .where(sql`${table.externalId} is not null`),
   ],
 );

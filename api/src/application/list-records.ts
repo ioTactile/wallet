@@ -1,6 +1,6 @@
 import type { ListRecordsQuery, RecordsResponse } from '@wallet/shared';
 
-import { RecordNotFound } from '../domain/errors.js';
+import { CannotDeleteAisRecord, RecordNotFound } from '../domain/errors.js';
 import type { RecordRepository } from '../domain/ports.js';
 import { mapRecord, summarizeRecords } from './map-record.js';
 
@@ -32,6 +32,9 @@ export class DeleteRecord {
     const record = await this.records.getById(recordId);
     if (!record || record.userId !== userId) {
       throw new RecordNotFound();
+    }
+    if (record.isAis) {
+      throw new CannotDeleteAisRecord();
     }
     await this.records.delete(record.id);
   }

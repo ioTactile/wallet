@@ -3,6 +3,7 @@ import { isManualLedger, type UpdateRecordBody } from '@wallet/shared';
 import type { Account } from '../domain/account.js';
 import {
   AccountNotFound,
+  CannotMutateAisRecord,
   InvalidRecord,
   ManualRecordOnBank,
   RecordNotFound,
@@ -25,6 +26,19 @@ export class UpdateRecord {
 
     const now = this.clock.now();
     let next = record;
+
+    if (record.isAis) {
+      if (
+        input.amountCents != null ||
+        input.bookedAt != null ||
+        input.accountId != null ||
+        input.fromAccountId != null ||
+        input.toAccountId != null ||
+        input.clearing != null
+      ) {
+        throw new CannotMutateAisRecord();
+      }
+    }
 
     if (record.kind === 'transfer') {
       if (input.categoryId != null || input.accountId != null) {

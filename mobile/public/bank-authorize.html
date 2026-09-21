@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Banque démo</title>
+    <style>
+      html,
+      body,
+      iframe {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe id="ais" title="Banque démo"></iframe>
+    <script>
+      (function () {
+        var url = new URLSearchParams(window.location.search).get('authorizationUrl') || '';
+        if (!/^https?:\/\//i.test(url)) {
+          document.body.textContent = 'URL de connexion invalide.';
+          return;
+        }
+        document.getElementById('ais').src = url;
+      })();
+    </script>
+  </body>
+</html>

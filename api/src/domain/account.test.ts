@@ -104,4 +104,18 @@ describe('Account', () => {
     expect(updated.iban).toBe('FR76');
     expect(updated.institutionName).toBe('CIC');
   });
+
+  it('links a bank account to an AIS connection and records lastSyncedAt', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const linked = bank({
+      bankLinkId: 'link-1',
+      externalAccountId: 'sandbox-checking',
+    });
+    expect(linked.bankLinkId).toBe('link-1');
+    expect(linked.externalAccountId).toBe('sandbox-checking');
+    expect(linked.markSynced(later).lastSyncedAt).toEqual(later);
+    expect(cash().bankLinkId).toBeNull();
+    expect(() => cash().markSynced(later)).toThrow(AccountKindMismatch);
+    expect(() => bank({ bankLinkId: 'link-1' })).toThrow(InvalidAccount);
+  });
 });

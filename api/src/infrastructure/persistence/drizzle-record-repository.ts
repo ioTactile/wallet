@@ -1,4 +1,4 @@
-import { desc, eq, or } from 'drizzle-orm';
+import { and, desc, eq, or } from 'drizzle-orm';
 import type { RecordClearing, RecordKind } from '@wallet/shared';
 
 import type { RecordRepository } from '../../domain/ports.js';
@@ -11,6 +11,15 @@ export class DrizzleRecordRepository implements RecordRepository {
 
   async getById(id: string): Promise<LedgerRecord | null> {
     const rows = await this.db.select().from(records).where(eq(records.id, id)).limit(1);
+    return rows[0] ? toRecord(rows[0]) : null;
+  }
+
+  async findByExternalId(accountId: string, externalId: string): Promise<LedgerRecord | null> {
+    const rows = await this.db
+      .select()
+      .from(records)
+      .where(and(eq(records.accountId, accountId), eq(records.externalId, externalId)))
+      .limit(1);
     return rows[0] ? toRecord(rows[0]) : null;
   }
 
@@ -31,6 +40,7 @@ export class DrizzleRecordRepository implements RecordRepository {
         note: record.note,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
+        externalId: record.externalId,
       })
       .onConflictDoUpdate({
         target: records.id,
@@ -45,6 +55,7 @@ export class DrizzleRecordRepository implements RecordRepository {
           clearing: record.clearing,
           note: record.note,
           updatedAt: record.updatedAt,
+          externalId: record.externalId,
         },
       });
   }
@@ -87,6 +98,7 @@ function toRecord(row: typeof records.$inferSelect): LedgerRecord {
     note: row.note,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    externalId: row.externalId,
   });
 }
 

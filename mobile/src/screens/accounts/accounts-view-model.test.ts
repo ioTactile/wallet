@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
 
 import { makeBankAccount, makeCashAccount } from '@/application/fakes';
-import { AccountApiError } from '@/domain/ports';
+import { AccountApiError, BankApiError } from '@/domain/ports';
 
 import {
   accountConfirmCopy,
@@ -11,6 +11,8 @@ import {
   defaultCashFormValues,
   detailScreenStatus,
   hasUnsavedAccountChanges,
+  bankCallbackConnectionId,
+  lastSyncedLabel,
   toAccountRow,
   toCreateCashBody,
   toEditAccountFormValues,
@@ -84,6 +86,27 @@ describe('accounts view-model', () => {
       'account.deleteLastCashError',
     );
     expect(accountErrorKey(new Error('nope'), 'save')).toBe('account.saveError');
+    expect(accountErrorKey(new BankApiError('network_error'), 'sync')).toBe(
+      'account.syncOfflineError',
+    );
+    expect(accountErrorKey(new BankApiError('cannot_sync_account'), 'sync')).toBe(
+      'account.syncError',
+    );
+    expect(accountErrorKey(new BankApiError('generic_error'), 'connect')).toBe(
+      'account.connectBankError',
+    );
+  });
+
+  it('formats lastSyncedAt with the active locale', () => {
+    expect(lastSyncedLabel(null, 'fr')).toBeNull();
+    expect(lastSyncedLabel('2026-09-20T10:00:00.000Z', 'fr')).toContain('2026');
+  });
+
+  it('reads the AIS connection id from Expo search params', () => {
+    expect(bankCallbackConnectionId('  abc ')).toBe('abc');
+    expect(bankCallbackConnectionId(['abc'])).toBe('abc');
+    expect(bankCallbackConnectionId(undefined)).toBeNull();
+    expect(bankCallbackConnectionId('   ')).toBeNull();
   });
 
   it('maps confirmation dialogs to shared copy keys', () => {

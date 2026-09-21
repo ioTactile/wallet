@@ -2,10 +2,13 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
 import { ArchiveAccount } from './application/archive-account.js';
+import { CompleteBankConnection } from './application/complete-bank-connection.js';
 import { CreateAccount } from './application/create-account.js';
 import { CreateRecord } from './application/create-record.js';
 import { DeleteAccount } from './application/delete-account.js';
+import { DisconnectBankAccount } from './application/disconnect-bank-account.js';
 import { EnsureDefaultCashAccount } from './application/ensure-default-cash-account.js';
+import { FakeBankConnection } from './application/fake-bank-connection.js';
 import { GetAccount } from './application/get-account.js';
 import { GetAccountBalances } from './application/get-account-balances.js';
 import { GetCurrentUser } from './application/get-current-user.js';
@@ -15,6 +18,8 @@ import { LoginUser } from './application/login-user.js';
 import { LogoutUser } from './application/logout-user.js';
 import { RefreshSession } from './application/refresh-session.js';
 import { RegisterUser } from './application/register-user.js';
+import { StartBankConnection } from './application/start-bank-connection.js';
+import { SyncBankAccount } from './application/sync-bank-account.js';
 import { UpdateAccount } from './application/update-account.js';
 import { UpdateProfile } from './application/update-profile.js';
 import { UpdateRecord } from './application/update-record.js';
@@ -23,6 +28,7 @@ import { loadEnv } from './config/env.js';
 import { FastifyJwtTokenIssuer } from './infrastructure/http/fastify-jwt-token-issuer.js';
 import { applyAuthSchema } from './infrastructure/persistence/apply-schema.js';
 import { DrizzleAccountRepository } from './infrastructure/persistence/drizzle-account-repository.js';
+import { DrizzleBankLinkRepository } from './infrastructure/persistence/drizzle-bank-link-repository.js';
 import { DrizzleRecordRepository } from './infrastructure/persistence/drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './infrastructure/persistence/drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './infrastructure/persistence/drizzle-user-repository.js';
@@ -45,10 +51,13 @@ async function main() {
   const refreshTokens = new DrizzleRefreshTokenRepository(db);
   const accounts = new DrizzleAccountRepository(db);
   const records = new DrizzleRecordRepository(db);
+  const links = new DrizzleBankLinkRepository(db);
   const hasher = new Argon2Hasher();
   const clock = new SystemClock();
   const ids = new CryptoIdGenerator();
+  const bank = new FakeBankConnection(env.PUBLIC_API_URL);
   const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
+  const syncBankAccount = new SyncBankAccount(accounts, records, links, bank, ids, clock);
 
   const app = await createServer(env);
   const tokens = new FastifyJwtTokenIssuer(
@@ -85,6 +94,17 @@ async function main() {
     createRecord: new CreateRecord(records, accounts, ids, clock),
     updateRecord: new UpdateRecord(records, accounts, clock),
     deleteRecord: new DeleteRecord(records),
+    startBankConnection: new StartBankConnection(links, bank, ids, clock),
+    completeBankConnection: new CompleteBankConnection(
+      links,
+      accounts,
+      bank,
+      ids,
+      clock,
+      syncBankAccount,
+    ),
+    syncBankAccount,
+    disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
   });
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });

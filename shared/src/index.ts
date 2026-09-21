@@ -19,6 +19,8 @@ export {
 export {
   ACCOUNT_COLORS,
   ACCOUNT_KINDS,
+  AIS_EXPENSE_CATEGORY_ID,
+  AIS_INCOME_CATEGORY_ID,
   DEFAULT_ACCOUNT_COLOR,
   DEFAULT_ACCOUNT_CURRENCY,
   DEFAULT_CASH_ACCOUNT_ID,
@@ -53,6 +55,16 @@ export {
   type ListAccountsQuery,
   type UpdateAccountBody,
 } from './account/schemas.js';
+export {
+  sandboxAuthorizeQuerySchema,
+  startBankConnectionBodySchema,
+  startBankConnectionResponseSchema,
+  syncBankAccountResponseSchema,
+  type SandboxAuthorizeQuery,
+  type StartBankConnectionBody,
+  type StartBankConnectionResponse,
+  type SyncBankAccountResponse,
+} from './bank/schemas.js';
 export { ACCOUNT_KIND_LABELS, accountKindLabel } from './account-labels.js';
 export {
   CATEGORIES,

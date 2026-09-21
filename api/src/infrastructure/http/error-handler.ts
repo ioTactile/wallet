@@ -17,6 +17,13 @@ const STATUS_BY_CODE: Record<string, number> = {
   record_not_found: 404,
   manual_record_on_bank: 400,
   cannot_delete_account_with_records: 409,
+  invalid_bank_link: 400,
+  bank_link_not_found: 404,
+  bank_link_not_completable: 409,
+  cannot_sync_account: 400,
+  cannot_mutate_ais_record: 400,
+  cannot_delete_ais_record: 409,
+  cannot_disconnect_account: 400,
 };
 
 export function mapError(error: unknown): { status: number; body: { error: string } } {

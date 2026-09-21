@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 import { maskIban } from '@/domain/iban';
 import { centsToInput, formatMoney, parseEurosToCents } from '@/domain/money';
-import { AccountApiError } from '@/domain/ports';
+import { AccountApiError, BankApiError } from '@/domain/ports';
 
 export type DataScreenStatus = 'loading' | 'error' | 'empty' | 'content';
 
@@ -177,20 +177,52 @@ export function accountConfirmCopy(kind: AccountConfirmKind): AccountConfirmCopy
   };
 }
 
+export function lastSyncedLabel(iso: string | null, locale: string): string | null {
+  if (iso == null) {
+    return null;
+  }
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(
+    new Date(iso),
+  );
+}
+
+export function bankCallbackConnectionId(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw == null) {
+    return null;
+  }
+  const trimmed = raw.trim();
+  return trimmed.length === 0 ? null : trimmed;
+}
+
 export function accountErrorKey(
   error: unknown,
-  action: 'save' | 'create' | 'delete' | 'archive',
+  action: 'save' | 'create' | 'delete' | 'archive' | 'sync' | 'disconnect' | 'connect',
 ):
   | 'account.saveError'
   | 'account.createError'
   | 'account.deleteError'
   | 'account.deleteLastCashError'
-  | 'account.archiveError' {
-  if (error instanceof AccountApiError && error.code === 'cannot_delete_last_cash_account') {
+  | 'account.archiveError'
+  | 'account.syncError'
+  | 'account.syncOfflineError'
+  | 'account.disconnectError'
+  | 'account.connectBankError' {
+  const code =
+    error instanceof AccountApiError || error instanceof BankApiError ? error.code : null;
+  if (code === 'cannot_delete_last_cash_account') {
     return 'account.deleteLastCashError';
+  }
+  if (code === 'network_error' || error instanceof TypeError) {
+    if (action === 'sync' || action === 'connect') {
+      return 'account.syncOfflineError';
+    }
   }
   if (action === 'create') return 'account.createError';
   if (action === 'delete') return 'account.deleteError';
   if (action === 'archive') return 'account.archiveError';
+  if (action === 'sync') return 'account.syncError';
+  if (action === 'disconnect') return 'account.disconnectError';
+  if (action === 'connect') return 'account.connectBankError';
   return 'account.saveError';
 }
