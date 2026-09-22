@@ -26,6 +26,7 @@ export class DrizzleBankLinkRepository implements BankLinkRepository {
         userId: link.userId,
         provider: link.provider,
         providerConnectionId: link.providerConnectionId,
+        redirectUri: link.redirectUri,
         status: link.status,
         lastSyncedAt: link.lastSyncedAt,
         createdAt: link.createdAt,
@@ -36,6 +37,7 @@ export class DrizzleBankLinkRepository implements BankLinkRepository {
         set: {
           provider: link.provider,
           providerConnectionId: link.providerConnectionId,
+          redirectUri: link.redirectUri,
           status: link.status,
           lastSyncedAt: link.lastSyncedAt,
           updatedAt: link.updatedAt,
@@ -50,6 +52,7 @@ function toBankLink(row: typeof bankLinks.$inferSelect): BankLink {
     userId: row.userId,
     provider: toProvider(row.provider),
     providerConnectionId: row.providerConnectionId,
+    redirectUri: row.redirectUri,
     status: toStatus(row.status),
     lastSyncedAt: row.lastSyncedAt,
     createdAt: row.createdAt,

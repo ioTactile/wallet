@@ -97,6 +97,54 @@ describe('auth use cases', () => {
     ).rejects.toBeInstanceOf(InvalidCredentials);
   });
 
+  it('still hashes the password when the email is unknown', async () => {
+    const users = new InMemoryUserRepository();
+    const refreshTokens = new InMemoryRefreshTokenRepository();
+    const verifyCalls: string[] = [];
+    const hasher = {
+      async hash(plain: string) {
+        return `hashed:${plain}`;
+      },
+      async verify(plain: string, hash: string) {
+        verifyCalls.push(hash);
+        return hash === `hashed:${plain}`;
+      },
+    };
+    const login = new LoginUser(
+      users,
+      refreshTokens,
+      hasher,
+      new FakeTokenIssuer(),
+      new SequentialIds(),
+      new FixedClock(new Date('2026-09-19T20:00:00.000Z')),
+    );
+    await expect(
+      login.execute({ email: 'missing@example.com', password: 'longenough' }),
+    ).rejects.toBeInstanceOf(InvalidCredentials);
+    expect(verifyCalls).toHaveLength(1);
+    expect(verifyCalls[0]).toMatch(/^hashed:/);
+  });
+
+  it('only one concurrent refresh wins the rotation race', async () => {
+    const { register, refresh, refreshTokens, tokens } = auth();
+    const session = await register.execute({
+      email: 'jordan@example.com',
+      password: 'longenough',
+    });
+    const first = await refreshTokens.findByHash(tokens.hashRefresh(session.refreshToken));
+    expect(first).not.toBeNull();
+
+    const won = await refreshTokens.revokeIfActive(first!.id, new Date('2026-09-19T21:00:00.000Z'));
+    expect(won).toBe(true);
+    const lost = await refreshTokens.revokeIfActive(
+      first!.id,
+      new Date('2026-09-19T21:00:01.000Z'),
+    );
+    expect(lost).toBe(false);
+
+    await expect(refresh.execute(session.refreshToken)).rejects.toBeInstanceOf(InvalidRefreshToken);
+  });
+
   it('rotates the refresh token and rejects reuse of the old one', async () => {
     const { register, refresh, refreshTokens, tokens } = auth();
     const session = await register.execute({

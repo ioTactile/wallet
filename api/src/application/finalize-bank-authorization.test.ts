@@ -17,6 +17,7 @@ describe('FinalizeBankAuthorization', () => {
       userId: 'user-1',
       provider: 'enablebanking',
       providerConnectionId: 'auth-1',
+      redirectUri: 'mobile://bank/callback',
       now: clock.now(),
     });
     await links.save(link);

@@ -27,6 +27,7 @@ export class StartBankConnection {
       userId,
       provider: this.bank.provider,
       providerConnectionId: consent.providerConnectionId,
+      redirectUri,
       now: this.clock.now(),
     });
     await this.links.save(link);

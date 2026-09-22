@@ -19,7 +19,7 @@ describe('FakeBankConnection', () => {
     expect(url.origin).toBe('http://127.0.0.1:3000');
     expect(url.pathname).toBe('/bank/sandbox/authorize');
     expect(url.searchParams.get('connectionId')).toBe('link-1');
-    expect(url.searchParams.get('redirect_uri')).toBe('mobile://bank/callback');
+    expect(url.searchParams.has('redirect_uri')).toBe(false);
     expect(bank.provider).toBe('sandbox');
   });
 

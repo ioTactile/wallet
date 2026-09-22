@@ -99,12 +99,18 @@ export class FakeBankConnection implements BankConnection {
     redirectUri: string;
     state: string;
   }): Promise<BankConsent> {
-    void input.userId;
+    if (input.userId.trim().length === 0) {
+      throw new Error('Sandbox consent requires a wallet user id');
+    }
+    void input.redirectUri;
     const providerConnectionId = `sandbox:${input.state}`;
     const url = new URL('/bank/sandbox/authorize', this.publicApiUrl);
     url.searchParams.set('connectionId', input.state);
-    url.searchParams.set('redirect_uri', input.redirectUri);
     return { providerConnectionId, authorizationUrl: url.toString() };
+  }
+
+  async ensureConsentForLink(): Promise<void> {
+    // Sandbox accounts are fixed fixtures; ownership is enforced by BankLink.userId.
   }
 
   async listAccounts(providerConnectionId: string): Promise<ExternalBankAccount[]> {

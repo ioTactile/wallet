@@ -1,8 +1,35 @@
 import { z } from 'zod';
 
+export function isAllowedBankRedirectUri(value: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  if (url.username || url.password) {
+    return false;
+  }
+  if (url.protocol === 'mobile:' || url.protocol === 'exp:' || url.protocol === 'exps:') {
+    return true;
+  }
+  if (url.protocol === 'http:' || url.protocol === 'https:') {
+    const path = url.pathname.replace(/\/+$/, '');
+    return path.endsWith('/bank-callback.html');
+  }
+  return false;
+}
+
+export const bankRedirectUriSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2000)
+  .refine(isAllowedBankRedirectUri, { message: 'redirect_uri_not_allowed' });
+
 export const startBankConnectionBodySchema = z
   .object({
-    redirectUri: z.string().trim().min(1).max(2000),
+    redirectUri: bankRedirectUriSchema,
   })
   .strict();
 
@@ -19,23 +46,23 @@ export const syncBankAccountResponseSchema = z
   })
   .strict();
 
-export const sandboxAuthorizeQuerySchema = z.object({
-  connectionId: z.string().trim().min(1).max(128),
-  redirect_uri: z.string().trim().min(1).max(2000),
-});
+export const sandboxAuthorizeQuerySchema = z
+  .object({
+    connectionId: z.string().trim().min(1).max(128),
+  })
+  .strict();
 
 export const gocardlessReturnQuerySchema = z
   .object({
     connectionId: z.string().trim().min(1).max(128).optional(),
     ref: z.string().trim().min(1).max(128).optional(),
-    redirect_uri: z.string().trim().min(1).max(2000),
   })
+  .strict()
   .refine((query) => (query.connectionId ?? query.ref) != null, {
     message: 'connectionId or ref is required',
   })
   .transform((query) => ({
     connectionId: query.connectionId ?? query.ref!,
-    redirect_uri: query.redirect_uri,
   }));
 
 export const enableBankingReturnQuerySchema = z.object({

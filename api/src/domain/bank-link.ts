@@ -1,3 +1,5 @@
+import { isAllowedBankRedirectUri } from '@wallet/shared';
+
 import { InvalidBankLink } from './errors.js';
 
 export const BANK_PROVIDERS = ['sandbox', 'gocardless', 'enablebanking'] as const;
@@ -11,6 +13,7 @@ export class BankLink {
   readonly userId: string;
   readonly provider: BankProvider;
   readonly providerConnectionId: string;
+  readonly redirectUri: string;
   readonly status: BankLinkStatus;
   readonly lastSyncedAt: Date | null;
   readonly createdAt: Date;
@@ -21,6 +24,7 @@ export class BankLink {
     userId: string;
     provider: BankProvider;
     providerConnectionId: string;
+    redirectUri: string;
     status: BankLinkStatus;
     lastSyncedAt: Date | null;
     createdAt: Date;
@@ -30,6 +34,7 @@ export class BankLink {
     this.userId = assertId(props.userId);
     this.provider = assertProvider(props.provider);
     this.providerConnectionId = assertId(props.providerConnectionId);
+    this.redirectUri = assertRedirectUri(props.redirectUri);
     this.status = assertStatus(props.status);
     this.lastSyncedAt = props.lastSyncedAt;
     this.createdAt = props.createdAt;
@@ -41,6 +46,7 @@ export class BankLink {
     userId: string;
     provider: BankProvider;
     providerConnectionId: string;
+    redirectUri: string;
     now: Date;
   }): BankLink {
     return new BankLink({
@@ -48,6 +54,7 @@ export class BankLink {
       userId: input.userId,
       provider: input.provider,
       providerConnectionId: input.providerConnectionId,
+      redirectUri: input.redirectUri,
       status: 'pending',
       lastSyncedAt: null,
       createdAt: input.now,
@@ -106,6 +113,7 @@ export class BankLink {
       userId: this.userId,
       provider: this.provider,
       providerConnectionId: this.providerConnectionId,
+      redirectUri: this.redirectUri,
       status: this.status,
       lastSyncedAt: this.lastSyncedAt,
       createdAt: this.createdAt,
@@ -120,6 +128,14 @@ function assertId(value: string): string {
     throw new InvalidBankLink('Invalid bank link id');
   }
   return value;
+}
+
+function assertRedirectUri(value: string): string {
+  const trimmed = value.trim();
+  if (!isAllowedBankRedirectUri(trimmed)) {
+    throw new InvalidBankLink('Invalid bank redirect URI');
+  }
+  return trimmed;
 }
 
 function assertProvider(value: BankProvider): BankProvider {

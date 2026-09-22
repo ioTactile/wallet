@@ -35,6 +35,11 @@ export interface BankConnection {
   readonly provider: BankProvider;
   startConsent(input: { userId: string; redirectUri: string; state: string }): Promise<BankConsent>;
   finalizeConsent(input: FinalizeBankConsentInput): Promise<string>;
+  ensureConsentForLink(input: {
+    providerConnectionId: string;
+    linkId: string;
+    userId: string;
+  }): Promise<void>;
   listAccounts(providerConnectionId: string): Promise<ExternalBankAccount[]>;
   listTransactions(
     providerConnectionId: string,

@@ -10,6 +10,7 @@ import {
   BANK_AUTH_RESULT_KEY,
   bankAuthCallbackConnectionId,
   createBankAuthWaiter,
+  isTrustedBankAuthMessage,
   notifyBankAuthOpener,
   parseBankAuthSignal,
   parseBankAuthStorage,
@@ -84,11 +85,17 @@ function openWebBankAuthPopup(authorizationUrl: string): Promise<'success' | 'ca
     return Promise.resolve('cancel');
   }
   try {
+    popup.opener = null;
+  } catch {
+    // Some browsers block assigning opener; channels below still work.
+  }
+  try {
     popup.focus();
   } catch {
     // Some browsers block focus on the popup; the session can still complete.
   }
 
+  const expectedOrigin = window.location.origin;
   return new Promise((resolve) => {
     const channel = 'BroadcastChannel' in window ? new BroadcastChannel(BANK_AUTH_CHANNEL) : null;
     const waiter = createBankAuthWaiter((result) => {
@@ -119,7 +126,7 @@ function openWebBankAuthPopup(authorizationUrl: string): Promise<'success' | 'ca
       }
     };
     const onMessage = (event: MessageEvent) => {
-      if (parseBankAuthSignal(event.data)) {
+      if (isTrustedBankAuthMessage(event, expectedOrigin)) {
         waiter.onSignal();
       }
     };

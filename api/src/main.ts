@@ -107,6 +107,8 @@ async function main() {
     finalizeBankAuthorization: new FinalizeBankAuthorization(links, bank, clock),
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
+    bankLinks: links,
+    enableBankingStateSecret: env.JWT_SECRET,
   });
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });

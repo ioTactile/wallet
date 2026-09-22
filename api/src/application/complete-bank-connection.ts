@@ -24,6 +24,12 @@ export class CompleteBankConnection {
       throw new BankLinkNotCompletable();
     }
 
+    await this.bank.ensureConsentForLink({
+      providerConnectionId: link.providerConnectionId,
+      linkId: link.id,
+      userId,
+    });
+
     const now = this.clock.now();
     const active = link.activate(now);
     if (active !== link) {

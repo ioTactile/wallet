@@ -87,3 +87,10 @@ export function createBankAuthWaiter(resolve: (result: 'success' | 'cancel') => 
     onCancel: () => finish('cancel'),
   };
 }
+
+export function isTrustedBankAuthMessage(
+  event: Pick<MessageEvent, 'origin' | 'data'>,
+  expectedOrigin: string,
+): boolean {
+  return event.origin === expectedOrigin && parseBankAuthSignal(event.data) != null;
+}

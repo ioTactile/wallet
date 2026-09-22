@@ -80,11 +80,16 @@ export async function applyAuthSchema(db: AppDatabase): Promise<void> {
       user_id uuid NOT NULL REFERENCES users(id),
       provider text NOT NULL,
       provider_connection_id text NOT NULL,
+      redirect_uri text NOT NULL DEFAULT '',
       status text NOT NULL,
       last_synced_at timestamptz,
       created_at timestamptz NOT NULL,
       updated_at timestamptz NOT NULL
     )
+  `);
+  await db.execute(`
+    ALTER TABLE bank_links
+      ADD COLUMN IF NOT EXISTS redirect_uri text NOT NULL DEFAULT ''
   `);
   await db.execute(`
     CREATE INDEX IF NOT EXISTS bank_links_user_id_idx ON bank_links (user_id)

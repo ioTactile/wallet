@@ -29,6 +29,7 @@ export function createBankConnection(env: Env, fetchImpl: typeof fetch = fetch):
       publicApiUrl: env.PUBLIC_API_URL,
       applicationId,
       privateKeyPem,
+      stateSecret: env.JWT_SECRET,
       aspspName: env.ENABLEBANKING_ASPSP_NAME,
       aspspCountry: env.ENABLEBANKING_ASPSP_COUNTRY,
       fetch: fetchImpl,

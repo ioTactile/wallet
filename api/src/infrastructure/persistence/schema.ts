@@ -39,6 +39,7 @@ export const bankLinks = pgTable(
       .references(() => users.id),
     provider: text('provider').notNull(),
     providerConnectionId: text('provider_connection_id').notNull(),
+    redirectUri: text('redirect_uri').notNull(),
     status: text('status').notNull(),
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true, mode: 'date' }),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),

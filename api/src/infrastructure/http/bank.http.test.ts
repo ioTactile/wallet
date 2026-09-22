@@ -8,12 +8,13 @@ import {
 } from '@wallet/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { startTestApp } from './test-server.js';
 import { encodeEnableBankingState } from '../enablebanking-mapper.js';
+import { startTestApp } from './test-server.js';
 
 const FROM = '2026-09-01T00:00:00.000Z';
 const TO = '2026-09-30T23:59:59.000Z';
 const REDIRECT = 'mobile://bank/callback';
+const STATE_SECRET = 'test-secret-at-least-32-characters!';
 
 describe('bank HTTP', () => {
   let app: Awaited<ReturnType<typeof startTestApp>>;
@@ -49,17 +50,25 @@ describe('bank HTTP', () => {
     expect(started.statusCode).toBe(201);
     const consent = startBankConnectionResponseSchema.parse(started.json());
     expect(consent.authorizationUrl).toContain('/bank/sandbox/authorize');
+    expect(consent.authorizationUrl).not.toContain('redirect_uri=');
 
     const authorize = await app.inject({
       method: 'GET',
-      url: `/bank/sandbox/authorize?connectionId=${consent.id}&redirect_uri=${encodeURIComponent(REDIRECT)}`,
+      url: `/bank/sandbox/authorize?connectionId=${consent.id}`,
     });
     expect(authorize.statusCode).toBe(200);
     expect(authorize.headers['content-type']).toContain('text/html');
     expect(authorize.body).toContain('Banque démo');
     expect(authorize.body).toContain('target="_top"');
     expect(authorize.body).toContain(`connectionId=${consent.id}`);
+    expect(authorize.body).toContain('mobile://bank/callback');
     expect(authorize.headers['content-security-policy']).toContain('frame-ancestors');
+
+    const rejectedRedirect = await app.inject({
+      method: 'GET',
+      url: `/bank/sandbox/authorize?connectionId=${consent.id}&redirect_uri=${encodeURIComponent('https://attacker.example/')}`,
+    });
+    expect(rejectedRedirect.statusCode).toBe(400);
 
     const completed = await app.inject({
       method: 'POST',
@@ -155,24 +164,7 @@ describe('bank HTTP', () => {
     expect(resync.json()).toEqual({ error: 'cannot_sync_account' });
   });
 
-  it('redirects the GoCardless return to the mobile callback', async () => {
-    app = await startTestApp();
-    const redirect = await app.inject({
-      method: 'GET',
-      url: `/bank/gocardless/return?connectionId=link-1&redirect_uri=${encodeURIComponent(REDIRECT)}`,
-    });
-    expect(redirect.statusCode).toBe(302);
-    expect(redirect.headers.location).toBe(`${REDIRECT}?connectionId=link-1`);
-
-    const fromRef = await app.inject({
-      method: 'GET',
-      url: `/bank/gocardless/return?ref=link-2&redirect_uri=${encodeURIComponent(`${REDIRECT}?x=1`)}`,
-    });
-    expect(fromRef.statusCode).toBe(302);
-    expect(fromRef.headers.location).toBe(`${REDIRECT}?x=1&connectionId=link-2`);
-  });
-
-  it('exchanges Enable Banking state and redirects to the mobile callback', async () => {
+  it('redirects the GoCardless return using the stored BankLink URI', async () => {
     app = await startTestApp();
     const registered = await app.inject({
       method: 'POST',
@@ -186,15 +178,58 @@ describe('bank HTTP', () => {
       payload: { redirectUri: REDIRECT },
     });
     const consent = startBankConnectionResponseSchema.parse(started.json());
-    const state = encodeEnableBankingState({
-      connectionId: consent.id,
-      redirectUri: REDIRECT,
+
+    const redirect = await app.inject({
+      method: 'GET',
+      url: `/bank/gocardless/return?connectionId=${consent.id}&redirect_uri=${encodeURIComponent('https://attacker.example/')}`,
     });
+    expect(redirect.statusCode).toBe(400);
+
+    const ok = await app.inject({
+      method: 'GET',
+      url: `/bank/gocardless/return?connectionId=${consent.id}`,
+    });
+    expect(ok.statusCode).toBe(302);
+    expect(ok.headers.location).toBe(`${REDIRECT}?connectionId=${consent.id}`);
+
+    const fromRef = await app.inject({
+      method: 'GET',
+      url: `/bank/gocardless/return?ref=${consent.id}`,
+    });
+    expect(fromRef.statusCode).toBe(302);
+    expect(fromRef.headers.location).toBe(`${REDIRECT}?connectionId=${consent.id}`);
+  });
+
+  it('exchanges Enable Banking state and redirects to the stored callback', async () => {
+    app = await startTestApp();
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'jordan@example.com', password: 'longenough' },
+    });
+    const started = await app.inject({
+      method: 'POST',
+      url: '/bank/connections',
+      headers: { authorization: `Bearer ${registered.json().accessToken}` },
+      payload: { redirectUri: REDIRECT },
+    });
+    const consent = startBankConnectionResponseSchema.parse(started.json());
+    const state = encodeEnableBankingState({ connectionId: consent.id }, STATE_SECRET);
     const returned = await app.inject({
       method: 'GET',
       url: `/bank/enablebanking/return?code=auth-code&state=${encodeURIComponent(state)}`,
     });
     expect(returned.statusCode).toBe(302);
     expect(returned.headers.location).toBe(`${REDIRECT}?connectionId=${consent.id}`);
+
+    const forged = encodeEnableBankingState(
+      { connectionId: consent.id },
+      'other-secret-at-least-32-chars!!',
+    );
+    const rejected = await app.inject({
+      method: 'GET',
+      url: `/bank/enablebanking/return?code=auth-code&state=${encodeURIComponent(forged)}`,
+    });
+    expect(rejected.statusCode).toBe(400);
   });
 });

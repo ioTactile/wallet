@@ -52,6 +52,7 @@ function bank(fetchImpl: typeof fetch) {
     publicApiUrl: PUBLIC_API,
     applicationId: 'app-1',
     privateKeyPem: 'unused',
+    stateSecret: 'test-secret-at-least-32-characters!',
     fetch: fetchImpl,
     signJwt: () => 'test-jwt',
     now: () => new Date('2026-09-21T10:00:00.000Z'),
@@ -90,10 +91,7 @@ describe('EnableBankingBankConnection', () => {
     });
     expect(ENABLEBANKING_ASPSP_NAME).toBe('Boursorama Banque');
     expect((started?.body as { state: string }).state).toBe(
-      encodeEnableBankingState({
-        connectionId: 'link-1',
-        redirectUri: 'mobile://bank/callback',
-      }),
+      encodeEnableBankingState({ connectionId: 'link-1' }, 'test-secret-at-least-32-characters!'),
     );
   });
 
@@ -185,6 +183,10 @@ describe('EnableBankingBankConnection', () => {
     expect(
       await connection.finalizeConsent({ code: 'auth-code', providerConnectionId: AUTH_ID }),
     ).toBe(SESSION_ID);
+    expect(calls.find((call) => call.url.pathname === '/sessions')?.body).toEqual({
+      code: 'auth-code',
+      authorization_id: AUTH_ID,
+    });
     const accounts = await connection.listAccounts(SESSION_ID);
     expect(accounts).toEqual([
       {

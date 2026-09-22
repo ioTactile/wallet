@@ -13,7 +13,11 @@ import { RefreshToken } from '../domain/refresh-token.js';
 import type { User } from '../domain/user.js';
 import { toSession, type Session } from './session.js';
 
+const LOGIN_TIMING_PLAIN = '__wallet_login_timing_dummy__';
+
 export class LoginUser {
+  private dummyHash: Promise<string> | null = null;
+
   constructor(
     private readonly users: UserRepository,
     private readonly refreshTokens: RefreshTokenRepository,
@@ -27,12 +31,21 @@ export class LoginUser {
     const email = Email.parse(input.email);
     const password = Password.parse(input.password);
     const user = await this.users.findByEmail(email);
+    const hash = user?.passwordHash ?? (await this.timingDummyHash());
+    const matched = await this.hasher.verify(password.value, hash);
 
-    if (!user || !(await this.hasher.verify(password.value, user.passwordHash))) {
+    if (!user || !matched) {
       throw new InvalidCredentials();
     }
 
     return this.openSession(user);
+  }
+
+  private timingDummyHash(): Promise<string> {
+    if (!this.dummyHash) {
+      this.dummyHash = this.hasher.hash(LOGIN_TIMING_PLAIN);
+    }
+    return this.dummyHash;
   }
 
   private async openSession(user: User): Promise<Session> {

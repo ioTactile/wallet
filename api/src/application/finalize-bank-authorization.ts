@@ -14,6 +14,9 @@ export class FinalizeBankAuthorization {
     if (!link) {
       throw new BankLinkNotFound();
     }
+    if (link.status === 'revoked') {
+      throw new BankLinkNotFound();
+    }
     const providerConnectionId = await this.bank.finalizeConsent({
       code,
       providerConnectionId: link.providerConnectionId,

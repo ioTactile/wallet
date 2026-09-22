@@ -74,7 +74,10 @@ export class GoCardlessBankConnection implements BankConnection {
     redirectUri: string;
     state: string;
   }): Promise<BankConsent> {
-    void input.userId;
+    if (input.userId.trim().length === 0) {
+      throw new Error('GoCardless consent requires a wallet user id');
+    }
+    void input.redirectUri;
     const agreement = await this.request<AgreementResponse>('/api/v2/agreements/enduser/', {
       method: 'POST',
       body: {
@@ -86,13 +89,12 @@ export class GoCardlessBankConnection implements BankConnection {
     });
     const redirect = new URL('/bank/gocardless/return', this.publicApiUrl);
     redirect.searchParams.set('connectionId', input.state);
-    redirect.searchParams.set('redirect_uri', input.redirectUri);
     const requisition = await this.request<RequisitionResponse>('/api/v2/requisitions/', {
       method: 'POST',
       body: {
         redirect: redirect.toString(),
         institution_id: this.institutionId,
-        reference: input.state,
+        reference: gocardlessConsentReference(input.userId, input.state),
         agreement: agreement.id,
         user_language: 'FR',
       },
@@ -101,6 +103,20 @@ export class GoCardlessBankConnection implements BankConnection {
       providerConnectionId: requisition.id,
       authorizationUrl: requisition.link,
     };
+  }
+
+  async ensureConsentForLink(input: {
+    providerConnectionId: string;
+    linkId: string;
+    userId: string;
+  }): Promise<void> {
+    const requisition = await this.request<RequisitionResponse & { reference?: string }>(
+      `/api/v2/requisitions/${input.providerConnectionId}/`,
+    );
+    const expected = gocardlessConsentReference(input.userId, input.linkId);
+    if ((requisition.reference ?? '').trim() !== expected) {
+      throw new Error('GoCardless requisition is not bound to this wallet link');
+    }
   }
 
   async listAccounts(providerConnectionId: string): Promise<ExternalBankAccount[]> {
@@ -218,4 +234,9 @@ export class GoCardlessBankConnection implements BankConnection {
     }
     throw new Error(`GoCardless ${path} failed: ${response.status}`);
   }
+}
+
+/** Stable binding key stored as GoCardless requisition `reference`. */
+export function gocardlessConsentReference(userId: string, linkId: string): string {
+  return `${userId.trim()}:${linkId.trim()}`;
 }

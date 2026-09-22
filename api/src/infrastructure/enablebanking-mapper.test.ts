@@ -8,17 +8,20 @@ import {
   mapEnableBankingTransactions,
 } from './enablebanking-mapper.js';
 
+const SECRET = 'test-secret-at-least-32-characters!';
+
 describe('enable banking state', () => {
-  it('round-trips connection id and mobile redirect', () => {
-    const state = encodeEnableBankingState({
-      connectionId: 'link-1',
-      redirectUri: 'mobile://bank/callback',
-    });
-    expect(decodeEnableBankingState(state)).toEqual({
-      connectionId: 'link-1',
-      redirectUri: 'mobile://bank/callback',
-    });
-    expect(() => decodeEnableBankingState('not-json')).toThrow();
+  it('round-trips a signed connection id and rejects forgeries', () => {
+    const state = encodeEnableBankingState({ connectionId: 'link-1' }, SECRET);
+    expect(decodeEnableBankingState(state, SECRET)).toEqual({ connectionId: 'link-1' });
+    expect(() => decodeEnableBankingState(state, 'other-secret-at-least-32-chars!!')).toThrow();
+    expect(() =>
+      decodeEnableBankingState(
+        Buffer.from(JSON.stringify({ connectionId: 'link-1' }), 'utf8').toString('base64url'),
+        SECRET,
+      ),
+    ).toThrow();
+    expect(() => decodeEnableBankingState('not-json', SECRET)).toThrow();
   });
 });
 

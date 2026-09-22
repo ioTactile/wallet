@@ -102,7 +102,7 @@ describe('GoCardlessBankConnection', () => {
     expect(requisition?.authorization).toBe('Bearer access-token');
     expect(requisition?.body).toMatchObject({
       institution_id: BOURSORAMA_INSTITUTION_ID,
-      reference: 'link-1',
+      reference: 'user-1:link-1',
       agreement: 'agreement-1',
       user_language: 'FR',
     });
@@ -110,7 +110,7 @@ describe('GoCardlessBankConnection', () => {
     expect(redirect.origin).toBe(PUBLIC_API);
     expect(redirect.pathname).toBe('/bank/gocardless/return');
     expect(redirect.searchParams.get('connectionId')).toBe('link-1');
-    expect(redirect.searchParams.get('redirect_uri')).toBe('mobile://bank/callback');
+    expect(redirect.searchParams.has('redirect_uri')).toBe(false);
   });
 
   it('lists EUR accounts after retrying AccountProcessing and maps transactions', async () => {

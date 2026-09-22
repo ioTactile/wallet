@@ -11,6 +11,7 @@ import type { CompleteBankConnection } from '../../application/complete-bank-con
 import type { FinalizeBankAuthorization } from '../../application/finalize-bank-authorization.js';
 import type { GetAccountBalances } from '../../application/get-account-balances.js';
 import type { StartBankConnection } from '../../application/start-bank-connection.js';
+import type { BankLinkRepository } from '../../domain/ports.js';
 import { decodeEnableBankingState } from '../enablebanking-mapper.js';
 import { presentAccounts } from './account-routes.js';
 
@@ -19,6 +20,8 @@ export type BankRoutesDeps = {
   completeBankConnection: CompleteBankConnection;
   finalizeBankAuthorization: FinalizeBankAuthorization;
   getAccountBalances: GetAccountBalances;
+  bankLinks: BankLinkRepository;
+  enableBankingStateSecret: string;
 };
 
 export async function registerBankRoutes(app: FastifyInstance, deps: BankRoutesDeps) {
@@ -37,7 +40,11 @@ export async function registerBankRoutes(app: FastifyInstance, deps: BankRoutesD
 
   app.get('/bank/sandbox/authorize', async (request, reply) => {
     const query = sandboxAuthorizeQuerySchema.parse(request.query);
-    const href = buildRedirectHref(query.redirect_uri, query.connectionId);
+    const link = await deps.bankLinks.getById(query.connectionId);
+    if (!link || link.status === 'revoked') {
+      return reply.code(404).send({ error: 'bank_link_not_found' });
+    }
+    const href = buildRedirectHref(link.redirectUri, link.id);
     reply.removeHeader('x-frame-options');
     reply.header('content-security-policy', 'frame-ancestors *');
     return reply.type('text/html; charset=utf-8').send(sandboxAuthorizePage(href));
@@ -45,21 +52,32 @@ export async function registerBankRoutes(app: FastifyInstance, deps: BankRoutesD
 
   app.get('/bank/gocardless/return', async (request, reply) => {
     const query = gocardlessReturnQuerySchema.parse(request.query);
-    return reply.redirect(buildRedirectHref(query.redirect_uri, query.connectionId));
+    const link = await deps.bankLinks.getById(query.connectionId);
+    if (!link || link.status === 'revoked') {
+      return reply.code(404).send({ error: 'bank_link_not_found' });
+    }
+    return reply.redirect(buildRedirectHref(link.redirectUri, link.id));
   });
 
   app.get('/bank/enablebanking/return', async (request, reply) => {
     const query = enableBankingReturnQuerySchema.parse(request.query);
-    let state: { connectionId: string; redirectUri: string };
+    let connectionId: string;
     try {
-      state = decodeEnableBankingState(query.state);
+      connectionId = decodeEnableBankingState(
+        query.state,
+        deps.enableBankingStateSecret,
+      ).connectionId;
     } catch {
       return reply.code(400).send({ error: 'invalid_body' });
     }
-    if (query.code != null && query.error == null) {
-      await deps.finalizeBankAuthorization.execute(state.connectionId, query.code);
+    const link = await deps.bankLinks.getById(connectionId);
+    if (!link || link.status === 'revoked') {
+      return reply.code(404).send({ error: 'bank_link_not_found' });
     }
-    return reply.redirect(buildRedirectHref(state.redirectUri, state.connectionId));
+    if (query.code != null && query.error == null) {
+      await deps.finalizeBankAuthorization.execute(link.id, query.code);
+    }
+    return reply.redirect(buildRedirectHref(link.redirectUri, link.id));
   });
 }
 

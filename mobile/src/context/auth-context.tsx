@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { authUseCases } from '@/application/use-cases';
@@ -19,6 +20,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [hydrated, setHydrated] = useState(false);
   const [pinConfigured, setPinConfigured] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -64,9 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async logout() {
         await authUseCases.logout.execute();
         setSession(null);
+        queryClient.clear();
       },
     }),
-    [hydrated, pinConfigured, unlocked, session],
+    [hydrated, pinConfigured, unlocked, session, queryClient],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

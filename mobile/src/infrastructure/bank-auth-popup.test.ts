@@ -4,6 +4,7 @@ import {
   BANK_AUTH_RESULT_KEY,
   bankAuthCallbackConnectionId,
   createBankAuthWaiter,
+  isTrustedBankAuthMessage,
   notifyBankAuthOpener,
   parseBankAuthSignal,
   parseBankAuthStorage,
@@ -88,5 +89,21 @@ describe('bank auth popup protocol', () => {
   it('rejects unrelated storage payloads', () => {
     expect(parseBankAuthSignal({ type: 'other', connectionId: 'abc' })).toBeNull();
     expect(parseBankAuthStorage('{')).toBeNull();
+  });
+
+  it('only trusts bank auth postMessage from the same origin', () => {
+    const signal = { type: 'wallet.bankAuth', connectionId: 'abc' };
+    expect(
+      isTrustedBankAuthMessage(
+        { origin: 'http://localhost:8081', data: signal },
+        'http://localhost:8081',
+      ),
+    ).toBe(true);
+    expect(
+      isTrustedBankAuthMessage(
+        { origin: 'https://evil.example', data: signal },
+        'http://localhost:8081',
+      ),
+    ).toBe(false);
   });
 });

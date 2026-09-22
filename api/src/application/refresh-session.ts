@@ -40,7 +40,11 @@ export class RefreshSession {
       throw new InvalidRefreshToken();
     }
 
-    await this.refreshTokens.save(current.revoke(now));
+    const wonRace = await this.refreshTokens.revokeIfActive(current.id, now);
+    if (!wonRace) {
+      await this.refreshTokens.revokeAllForUser(current.userId, now);
+      throw new InvalidRefreshToken();
+    }
 
     const issued = this.tokens.issueRefresh();
     await this.refreshTokens.save(

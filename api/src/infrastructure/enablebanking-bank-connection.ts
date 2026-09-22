@@ -16,10 +16,8 @@ import {
 } from './enablebanking-mapper.js';
 
 export const ENABLEBANKING_API_BASE = 'https://api.enablebanking.com';
-/** Exact ASPSP name from Enable Banking `/aspsps` (not the consumer brand). */
 export const ENABLEBANKING_ASPSP_NAME = 'Boursorama Banque';
 export const ENABLEBANKING_ASPSP_COUNTRY = 'FR';
-/** Local account label shown in the PFM UI. */
 export const ENABLEBANKING_INSTITUTION_NAME = 'BoursoBank';
 
 const CONSENT_DAYS = 90;
@@ -28,6 +26,7 @@ export type EnableBankingBankConnectionConfig = {
   publicApiUrl: string;
   applicationId: string;
   privateKeyPem: string;
+  stateSecret: string;
   aspspName?: string;
   aspspCountry?: string;
   institutionName?: string;
@@ -49,6 +48,7 @@ export class EnableBankingBankConnection implements BankConnection {
   private readonly publicApiUrl: string;
   private readonly applicationId: string;
   private readonly privateKeyPem: string;
+  private readonly stateSecret: string;
   private readonly aspspName: string;
   private readonly aspspCountry: string;
   private readonly institutionName: string;
@@ -60,6 +60,7 @@ export class EnableBankingBankConnection implements BankConnection {
     this.publicApiUrl = config.publicApiUrl;
     this.applicationId = config.applicationId;
     this.privateKeyPem = config.privateKeyPem;
+    this.stateSecret = config.stateSecret;
     this.aspspName = config.aspspName ?? ENABLEBANKING_ASPSP_NAME;
     this.aspspCountry = config.aspspCountry ?? ENABLEBANKING_ASPSP_COUNTRY;
     this.institutionName = config.institutionName ?? ENABLEBANKING_INSTITUTION_NAME;
@@ -80,7 +81,10 @@ export class EnableBankingBankConnection implements BankConnection {
     redirectUri: string;
     state: string;
   }): Promise<BankConsent> {
-    void input.userId;
+    if (input.userId.trim().length === 0) {
+      throw new Error('Enable Banking consent requires a wallet user id');
+    }
+    void input.redirectUri;
     const validUntil = new Date(this.now().getTime() + CONSENT_DAYS * 24 * 60 * 60 * 1000);
     const redirect = new URL('/bank/enablebanking/return', this.publicApiUrl);
     const started = await this.request<AuthResponse>('/auth', {
@@ -88,10 +92,7 @@ export class EnableBankingBankConnection implements BankConnection {
       body: {
         access: { valid_until: validUntil.toISOString() },
         aspsp: { name: this.aspspName, country: this.aspspCountry },
-        state: encodeEnableBankingState({
-          connectionId: input.state,
-          redirectUri: input.redirectUri,
-        }),
+        state: encodeEnableBankingState({ connectionId: input.state }, this.stateSecret),
         redirect_url: redirect.toString(),
         psu_type: 'personal',
         language: 'fr',
@@ -109,9 +110,16 @@ export class EnableBankingBankConnection implements BankConnection {
     }
     const session = await this.request<SessionResponse>('/sessions', {
       method: 'POST',
-      body: { code: input.code },
+      body: {
+        code: input.code,
+        authorization_id: input.providerConnectionId,
+      },
     });
     return session.session_id;
+  }
+
+  async ensureConsentForLink(): Promise<void> {
+    // Ownership is enforced via HMAC state → BankLink.userId on complete.
   }
 
   async listAccounts(providerConnectionId: string): Promise<ExternalBankAccount[]> {

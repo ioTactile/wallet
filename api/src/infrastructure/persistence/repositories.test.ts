@@ -222,6 +222,7 @@ describe('drizzle repositories (pglite)', () => {
       userId: user.id,
       provider: 'sandbox',
       providerConnectionId: 'sandbox:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      redirectUri: 'mobile://bank/callback',
       now,
     }).activate(now);
     await links.save(link);
@@ -232,6 +233,7 @@ describe('drizzle repositories (pglite)', () => {
       userId: user.id,
       provider: 'gocardless',
       providerConnectionId: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+      redirectUri: 'mobile://bank/callback',
       now,
     });
     await links.save(gocardless);

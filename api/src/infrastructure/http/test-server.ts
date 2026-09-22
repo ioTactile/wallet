@@ -91,6 +91,8 @@ export async function startTestApp(now = new Date('2026-09-20T10:00:00.000Z')) {
     finalizeBankAuthorization: new FinalizeBankAuthorization(links, bank, clock),
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
+    bankLinks: links,
+    enableBankingStateSecret: env.JWT_SECRET,
   };
 
   await registerApi(app, deps);

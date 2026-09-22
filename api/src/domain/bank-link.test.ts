@@ -11,6 +11,7 @@ function pending() {
     userId: 'user-1',
     provider: 'sandbox',
     providerConnectionId: 'provider-1',
+    redirectUri: 'mobile://bank/callback',
     now: NOW,
   });
 }
@@ -30,9 +31,11 @@ describe('BankLink', () => {
       userId: 'user-1',
       provider: 'gocardless',
       providerConnectionId: 'req-1',
+      redirectUri: 'mobile://bank/callback',
       now: NOW,
     });
     expect(link.provider).toBe('gocardless');
+    expect(link.redirectUri).toBe('mobile://bank/callback');
   });
 
   it('binds a later provider session id', () => {
@@ -42,6 +45,7 @@ describe('BankLink', () => {
       userId: 'user-1',
       provider: 'enablebanking',
       providerConnectionId: 'auth-1',
+      redirectUri: 'mobile://bank/callback',
       now: NOW,
     });
     expect(link.bindProviderConnection('session-1', later).providerConnectionId).toBe('session-1');
@@ -75,13 +79,24 @@ describe('BankLink', () => {
     expect(() => revoked.activate(later)).toThrow(InvalidBankLink);
   });
 
-  it('rejects empty ids', () => {
+  it('rejects empty ids and disallowed redirect URIs', () => {
     expect(() =>
       BankLink.start({
         id: '  ',
         userId: 'user-1',
         provider: 'sandbox',
         providerConnectionId: 'provider-1',
+        redirectUri: 'mobile://bank/callback',
+        now: NOW,
+      }),
+    ).toThrow(InvalidBankLink);
+    expect(() =>
+      BankLink.start({
+        id: 'link-1',
+        userId: 'user-1',
+        provider: 'sandbox',
+        providerConnectionId: 'provider-1',
+        redirectUri: 'https://attacker.example/phish',
         now: NOW,
       }),
     ).toThrow(InvalidBankLink);

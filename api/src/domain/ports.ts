@@ -36,6 +36,7 @@ export interface BankLinkRepository {
 export interface RefreshTokenRepository {
   findByHash(tokenHash: string): Promise<RefreshToken | null>;
   save(token: RefreshToken): Promise<void>;
+  revokeIfActive(id: string, now: Date): Promise<boolean>;
   revokeAllForUser(userId: string, now: Date): Promise<void>;
 }
 

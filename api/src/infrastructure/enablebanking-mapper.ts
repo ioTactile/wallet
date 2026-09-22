@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 import type { ExternalBankAccount, ExternalBankTransaction } from '../domain/bank-connection.js';
 import { parseEuroAmountToCents } from './gocardless-mapper.js';
@@ -28,28 +28,40 @@ export type EnableBankingTransaction = {
   note?: string;
 };
 
-export function encodeEnableBankingState(input: {
-  connectionId: string;
-  redirectUri: string;
-}): string {
-  return Buffer.from(JSON.stringify(input), 'utf8').toString('base64url');
+export function encodeEnableBankingState(input: { connectionId: string }, secret: string): string {
+  const connectionId = input.connectionId.trim();
+  if (connectionId.length === 0) {
+    throw new Error('Invalid Enable Banking state');
+  }
+  const payload = Buffer.from(JSON.stringify({ connectionId }), 'utf8').toString('base64url');
+  const signature = signPayload(payload, secret);
+  return `${payload}.${signature}`;
 }
 
-export function decodeEnableBankingState(state: string): {
-  connectionId: string;
-  redirectUri: string;
-} {
-  const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8')) as {
+export function decodeEnableBankingState(state: string, secret: string): { connectionId: string } {
+  const separator = state.lastIndexOf('.');
+  if (separator <= 0 || separator === state.length - 1) {
+    throw new Error('Invalid Enable Banking state');
+  }
+  const payload = state.slice(0, separator);
+  const signature = state.slice(separator + 1);
+  const expected = signPayload(payload, secret);
+  const left = Buffer.from(signature);
+  const right = Buffer.from(expected);
+  if (left.length !== right.length || !timingSafeEqual(left, right)) {
+    throw new Error('Invalid Enable Banking state');
+  }
+  const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
     connectionId?: unknown;
-    redirectUri?: unknown;
   };
-  if (typeof parsed.connectionId !== 'string' || typeof parsed.redirectUri !== 'string') {
+  if (typeof parsed.connectionId !== 'string' || parsed.connectionId.trim().length === 0) {
     throw new Error('Invalid Enable Banking state');
   }
-  if (parsed.connectionId.trim().length === 0 || parsed.redirectUri.trim().length === 0) {
-    throw new Error('Invalid Enable Banking state');
-  }
-  return { connectionId: parsed.connectionId, redirectUri: parsed.redirectUri };
+  return { connectionId: parsed.connectionId.trim() };
+}
+
+function signPayload(payload: string, secret: string): string {
+  return createHmac('sha256', secret).update(payload).digest('base64url');
 }
 
 export function enableBankingDateFrom(from: Date, overlapDays = 2): string {
