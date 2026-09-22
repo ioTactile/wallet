@@ -71,6 +71,6 @@ describe('loadEnv bank provider', () => {
         ENABLEBANKING_APPLICATION_ID: 'app-1',
         ENABLEBANKING_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----',
       }).ENABLEBANKING_ASPSP_NAME,
-    ).toBe('BoursoBank');
+    ).toBe('Boursorama Banque');
   });
 });

@@ -3,20 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Banque démo</title>
-    <style>
-      html,
-      body,
-      iframe {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        border: 0;
-      }
-    </style>
+    <title>Connexion bancaire</title>
   </head>
   <body>
-    <iframe id="ais" title="Banque démo"></iframe>
+    <p>Redirection vers la banque…</p>
     <script>
       (function () {
         var url = new URLSearchParams(window.location.search).get('authorizationUrl') || '';
@@ -24,7 +14,8 @@
           document.body.textContent = 'URL de connexion invalide.';
           return;
         }
-        document.getElementById('ais').src = url;
+        // Top-level navigation only — banks forbid embedding (X-Frame-Options / CSP).
+        window.location.replace(url);
       })();
     </script>
   </body>

@@ -73,6 +73,29 @@ export function hitDonutSlice(
   return visible.at(-1)?.id ?? null;
 }
 
+/** Prefer client − box on web; fall back to Pressable locationX/Y on native. */
+export function localPointInDonut(input: {
+  locationX: number;
+  locationY: number;
+  clientX?: number;
+  clientY?: number;
+  boxClientLeft?: number;
+  boxClientTop?: number;
+}): { x: number; y: number } {
+  if (
+    input.clientX != null &&
+    input.clientY != null &&
+    input.boxClientLeft != null &&
+    input.boxClientTop != null
+  ) {
+    return {
+      x: input.clientX - input.boxClientLeft,
+      y: input.clientY - input.boxClientTop,
+    };
+  }
+  return { x: input.locationX, y: input.locationY };
+}
+
 export function donutPath(
   cx: number,
   cy: number,

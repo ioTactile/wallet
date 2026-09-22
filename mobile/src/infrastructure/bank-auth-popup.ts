@@ -24,10 +24,12 @@ export function webBankAuthRedirectUri(origin: string): string {
   return `${origin.replace(/\/$/, '')}/bank-callback.html`;
 }
 
-export function webBankAuthPopupUrl(origin: string, authorizationUrl: string): string {
-  const popup = new URL('/bank-authorize.html', `${origin.replace(/\/$/, '')}/`);
-  popup.searchParams.set('authorizationUrl', authorizationUrl);
-  return popup.toString();
+export function webBankAuthPopupUrl(_origin: string, authorizationUrl: string): string {
+  if (!/^https?:\/\//i.test(authorizationUrl)) {
+    throw new Error('Invalid bank authorization URL');
+  }
+  // Open AIS top-level: Enable Banking (and real banks) set X-Frame-Options / frame-ancestors.
+  return authorizationUrl;
 }
 
 export function parseBankAuthSignal(value: unknown): BankAuthSignal | null {

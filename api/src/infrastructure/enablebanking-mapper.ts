@@ -9,6 +9,7 @@ export type EnableBankingAccount = {
   details?: string;
   product?: string;
   currency?: string;
+  cash_account_type?: string;
   account_id?: { iban?: string };
 };
 
@@ -64,12 +65,16 @@ export function mapEnableBankingAccount(
   if (!externalId) {
     return null;
   }
-  const currency = account.currency?.trim().toUpperCase() || 'EUR';
-  if (currency !== 'EUR') {
+  // PSD2 CARD accounts (e.g. Bourso débit immédiat) duplicate CAV card payments.
+  if (account.cash_account_type?.trim().toUpperCase() === 'CARD') {
+    return null;
+  }
+  const currency = normalizeEuroCurrency(account.currency);
+  if (currency == null) {
     return null;
   }
   const name =
-    firstText(account.details, account.name, account.product, institutionName) ?? institutionName;
+    firstText(account.product, account.name, account.details, institutionName) ?? institutionName;
   return {
     externalId,
     name,
@@ -90,8 +95,8 @@ function mapTransaction(
   accountExternalId: string,
   transaction: EnableBankingTransaction,
 ): ExternalBankTransaction[] {
-  const currency = transaction.transaction_amount?.currency?.trim().toUpperCase() || 'EUR';
-  if (currency !== 'EUR') {
+  const currency = normalizeEuroCurrency(transaction.transaction_amount?.currency);
+  if (currency == null) {
     return [];
   }
   const amountRaw = transaction.transaction_amount?.amount;
@@ -162,6 +167,15 @@ function firstText(...values: Array<string | undefined | null>): string | null {
     if (trimmed) {
       return trimmed;
     }
+  }
+  return null;
+}
+
+/** EUR, blank, or ISO 4217 XXX ("no currency") — BoursoBank returns XXX for EUR accounts. */
+function normalizeEuroCurrency(value: string | undefined): 'EUR' | null {
+  const currency = value?.trim().toUpperCase() || 'EUR';
+  if (currency === 'EUR' || currency === 'XXX') {
+    return 'EUR';
   }
   return null;
 }

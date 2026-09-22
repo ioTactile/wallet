@@ -16,8 +16,10 @@ import {
 } from './enablebanking-mapper.js';
 
 export const ENABLEBANKING_API_BASE = 'https://api.enablebanking.com';
-export const ENABLEBANKING_ASPSP_NAME = 'BoursoBank';
+/** Exact ASPSP name from Enable Banking `/aspsps` (not the consumer brand). */
+export const ENABLEBANKING_ASPSP_NAME = 'Boursorama Banque';
 export const ENABLEBANKING_ASPSP_COUNTRY = 'FR';
+/** Local account label shown in the PFM UI. */
 export const ENABLEBANKING_INSTITUTION_NAME = 'BoursoBank';
 
 const CONSENT_DAYS = 90;
@@ -169,7 +171,12 @@ export class EnableBankingBankConnection implements BankConnection {
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
     if (!response.ok) {
-      throw new Error(`Enable Banking ${path} failed: ${response.status}`);
+      const detail = (await response.text()).trim();
+      throw new Error(
+        detail.length > 0
+          ? `Enable Banking ${path} failed: ${response.status} ${detail}`
+          : `Enable Banking ${path} failed: ${response.status}`,
+      );
     }
     if (response.status === 204) {
       return undefined as T;

@@ -88,12 +88,34 @@ describe('EnableBankingBankConnection', () => {
       language: 'fr',
       redirect_url: `${PUBLIC_API}/bank/enablebanking/return`,
     });
+    expect(ENABLEBANKING_ASPSP_NAME).toBe('Boursorama Banque');
     expect((started?.body as { state: string }).state).toBe(
       encodeEnableBankingState({
         connectionId: 'link-1',
         redirectUri: 'mobile://bank/callback',
       }),
     );
+  });
+
+  it('includes Enable Banking error body when /auth fails', async () => {
+    const { fetchImpl } = createFetchMock([
+      {
+        method: 'POST',
+        path: '/auth',
+        handler: () =>
+          json(
+            { code: 422, message: 'Wrong ASPSP name provided', error: 'WRONG_ASPSP_PROVIDED' },
+            422,
+          ),
+      },
+    ]);
+    await expect(
+      bank(fetchImpl).startConsent({
+        userId: 'user-1',
+        redirectUri: 'mobile://bank/callback',
+        state: 'link-1',
+      }),
+    ).rejects.toThrow(/Enable Banking \/auth failed: 422.*WRONG_ASPSP_PROVIDED/);
   });
 
   it('exchanges the authorization code, lists accounts and paginates transactions', async () => {

@@ -18,7 +18,7 @@ const envSchema = z
     GOCARDLESS_INSTITUTION_ID: z.string().min(1).default('BOURSORAMA_BOUSFRPPXXX'),
     ENABLEBANKING_APPLICATION_ID: z.string().min(1).optional(),
     ENABLEBANKING_PRIVATE_KEY: z.string().min(1).optional(),
-    ENABLEBANKING_ASPSP_NAME: z.string().min(1).default('BoursoBank'),
+    ENABLEBANKING_ASPSP_NAME: z.string().min(1).default('Boursorama Banque'),
     ENABLEBANKING_ASPSP_COUNTRY: z.string().min(2).max(2).default('FR'),
   })
   .superRefine((env, ctx) => {
@@ -99,7 +99,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     PUBLIC_API_URL: 'http://127.0.0.1:3000',
     BANK_PROVIDER: 'sandbox',
     GOCARDLESS_INSTITUTION_ID: 'BOURSORAMA_BOUSFRPPXXX',
-    ENABLEBANKING_ASPSP_NAME: 'BoursoBank',
+    ENABLEBANKING_ASPSP_NAME: 'Boursorama Banque',
     ENABLEBANKING_ASPSP_COUNTRY: 'FR',
     ...overrides,
   };

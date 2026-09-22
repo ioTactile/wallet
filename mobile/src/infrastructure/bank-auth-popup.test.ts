@@ -27,14 +27,18 @@ describe('bank auth popup protocol', () => {
     expect(bankAuthCallbackConnectionId('/bank/callback', '')).toBeNull();
   });
 
-  it('builds same-origin web popup and redirect URLs', () => {
+  it('opens the authorization URL directly (banks forbid iframes)', () => {
     expect(webBankAuthRedirectUri('http://localhost:8081/')).toBe(
       'http://localhost:8081/bank-callback.html',
     );
     expect(
+      webBankAuthPopupUrl('http://localhost:8081', 'https://tilisy.enablebanking.com/ais/start'),
+    ).toBe('https://tilisy.enablebanking.com/ais/start');
+    expect(
       webBankAuthPopupUrl('http://localhost:8081', 'http://127.0.0.1:3000/bank/sandbox/authorize'),
-    ).toBe(
-      'http://localhost:8081/bank-authorize.html?authorizationUrl=http%3A%2F%2F127.0.0.1%3A3000%2Fbank%2Fsandbox%2Fauthorize',
+    ).toBe('http://127.0.0.1:3000/bank/sandbox/authorize');
+    expect(() => webBankAuthPopupUrl('http://localhost:8081', 'javascript:alert(1)')).toThrow(
+      /invalid/i,
     );
   });
 

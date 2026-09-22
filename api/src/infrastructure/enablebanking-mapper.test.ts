@@ -81,13 +81,14 @@ describe('mapEnableBankingTransactions', () => {
 });
 
 describe('mapEnableBankingAccount', () => {
-  it('maps EUR accounts and skips others', () => {
+  it('maps EUR current accounts, skips cards and foreign currencies', () => {
     expect(
       mapEnableBankingAccount(
         {
           uid: 'acc-1',
           details: 'Compte courant',
           currency: 'EUR',
+          cash_account_type: 'CACC',
           account_id: { iban: ' FR761234 ' },
         },
         'BoursoBank',
@@ -99,6 +100,39 @@ describe('mapEnableBankingAccount', () => {
       institutionName: 'BoursoBank',
       currency: 'EUR',
     });
+    // BoursoBank often returns ISO 4217 XXX ("no currency") for EUR current accounts.
+    expect(
+      mapEnableBankingAccount(
+        {
+          uid: 'acc-xxx',
+          name: 'M XXX',
+          details: 'immediat_debit',
+          product: 'CAV - BOURSOBANK',
+          currency: 'XXX',
+          cash_account_type: 'CACC',
+          account_id: { iban: 'FR7640618804330004014834544' },
+        },
+        'BoursoBank',
+      ),
+    ).toEqual({
+      externalId: 'acc-xxx',
+      name: 'CAV - BOURSOBANK',
+      iban: 'FR7640618804330004014834544',
+      institutionName: 'BoursoBank',
+      currency: 'EUR',
+    });
+    // Debit cards mirror CAV card payments — skip to avoid duplicates.
+    expect(
+      mapEnableBankingAccount(
+        {
+          uid: 'acc-card',
+          product: 'Carte bancaire à débit immédiat',
+          currency: 'XXX',
+          cash_account_type: 'CARD',
+        },
+        'BoursoBank',
+      ),
+    ).toBeNull();
     expect(mapEnableBankingAccount({ uid: 'acc-2', currency: 'USD' }, 'BoursoBank')).toBeNull();
   });
 });
