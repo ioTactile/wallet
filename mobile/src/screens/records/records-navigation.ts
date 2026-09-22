@@ -1,10 +1,16 @@
 import type { Href } from 'expo-router';
 
+export type RecordNavFrom = 'home' | 'records';
+
 export function recordsListHref(accountIds?: string): Href {
   if (accountIds != null && accountIds.length > 0) {
     return { pathname: '/records', params: { accountIds } };
   }
   return '/records';
+}
+
+export function recordExitHref(from?: string): Href {
+  return from === 'home' ? '/' : recordsListHref();
 }
 
 export function recordDetailHref(
@@ -14,6 +20,7 @@ export function recordDetailHref(
     kind?: string;
     toAccountId?: string;
     fromAccountId?: string;
+    from?: RecordNavFrom | string;
   },
 ): Href {
   const params: { id: string } & Record<string, string> = { id };

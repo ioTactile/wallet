@@ -165,6 +165,7 @@ describe('record use cases', () => {
       clearing: 'uncleared',
     });
     expect(updated.categoryId).toBe('shopping.home_garden');
+    expect(updated.categoryConfirmed).toBe(false);
     expect(updated.note).toBe('Amazon');
     expect(updated.clearing).toBe('uncleared');
     expect((await get.execute(USER_ID, record.id)).note).toBe('Amazon');
@@ -200,6 +201,37 @@ describe('record use cases', () => {
     expect(restored.kind).toBe('expense');
     expect(restored.accountId).toBe(cash.id);
     expect(restored.categoryId).toBe('food_drinks.groceries');
+    expect(restored.categoryConfirmed).toBe(false);
+  });
+
+  it('confirms a category and clears that confirmation when the category changes', async () => {
+    const { createAccount, create, update } = setup();
+    const cash = await createAccount.execute(USER_ID, { kind: 'cash', name: 'Espèces' });
+    const record = await create.execute(USER_ID, {
+      kind: 'expense',
+      accountId: cash.id,
+      categoryId: 'food_drinks.groceries',
+      amountCents: 100,
+    });
+    expect(record.categoryConfirmed).toBe(false);
+
+    const confirmed = await update.execute(USER_ID, record.id, { categoryConfirmed: true });
+    expect(confirmed.categoryConfirmed).toBe(true);
+    expect(confirmed.categoryId).toBe('food_drinks.groceries');
+
+    const recategorized = await update.execute(USER_ID, record.id, {
+      categoryId: 'shopping.home_garden',
+    });
+    expect(recategorized.categoryConfirmed).toBe(false);
+
+    const bank = await createAccount.execute(USER_ID, { kind: 'bank', name: 'CIC' });
+    await expect(
+      update.execute(USER_ID, record.id, {
+        kind: 'transfer',
+        toAccountId: bank.id,
+        categoryConfirmed: true,
+      }),
+    ).rejects.toBeInstanceOf(InvalidRecord);
   });
 
   it('converts income to a transfer incoming onto the original account', async () => {

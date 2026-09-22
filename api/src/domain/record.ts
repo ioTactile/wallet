@@ -19,6 +19,7 @@ export type LedgerRecordProps = {
   accountId: string;
   counterpartyAccountId: string | null;
   categoryId: string | null;
+  categoryConfirmed: boolean;
   amountCents: number;
   currency: string;
   bookedAt: Date;
@@ -48,6 +49,7 @@ export class LedgerRecord {
   readonly accountId: string;
   readonly counterpartyAccountId: string | null;
   readonly categoryId: string | null;
+  readonly categoryConfirmed: boolean;
   readonly amountCents: number;
   readonly currency: string;
   readonly bookedAt: Date;
@@ -66,6 +68,7 @@ export class LedgerRecord {
       ? assertId(props.counterpartyAccountId)
       : null;
     this.categoryId = props.categoryId;
+    this.categoryConfirmed = props.categoryConfirmed;
     this.amountCents = assertAmount(props.amountCents);
     this.currency = assertCurrency(props.currency);
     this.bookedAt = props.bookedAt;
@@ -99,6 +102,7 @@ export class LedgerRecord {
       accountId: input.accountId,
       counterpartyAccountId: input.counterpartyAccountId,
       categoryId: null,
+      categoryConfirmed: false,
       amountCents: input.amountCents,
       currency: input.currency ?? DEFAULT_ACCOUNT_CURRENCY,
       bookedAt: input.bookedAt ?? input.now,
@@ -115,6 +119,7 @@ export class LedgerRecord {
       externalId: string;
       signedAmountCents: number;
       label: string;
+      categoryId?: string;
     },
   ): LedgerRecord {
     if (!Number.isInteger(input.signedAmountCents) || input.signedAmountCents === 0) {
@@ -128,7 +133,9 @@ export class LedgerRecord {
       kind,
       accountId: input.accountId,
       counterpartyAccountId: null,
-      categoryId: kind === 'expense' ? AIS_EXPENSE_CATEGORY_ID : AIS_INCOME_CATEGORY_ID,
+      categoryId:
+        input.categoryId ?? (kind === 'expense' ? AIS_EXPENSE_CATEGORY_ID : AIS_INCOME_CATEGORY_ID),
+      categoryConfirmed: false,
       amountCents: Math.abs(input.signedAmountCents),
       currency: input.currency ?? DEFAULT_ACCOUNT_CURRENCY,
       bookedAt: input.bookedAt ?? input.now,
@@ -144,7 +151,14 @@ export class LedgerRecord {
     if (this.kind === 'transfer') {
       throw new InvalidRecord('Transfers have no category');
     }
-    return this.with({ categoryId }, now);
+    return this.with({ categoryId, categoryConfirmed: false }, now);
+  }
+
+  setCategoryConfirmed(categoryConfirmed: boolean, now: Date): LedgerRecord {
+    if (this.kind === 'transfer') {
+      throw new InvalidRecord('Transfers have no category to confirm');
+    }
+    return this.with({ categoryConfirmed }, now);
   }
 
   convertToTransfer(otherAccountId: string, now: Date): LedgerRecord {
@@ -161,6 +175,7 @@ export class LedgerRecord {
           accountId: otherAccountId,
           counterpartyAccountId: this.accountId,
           categoryId: null,
+          categoryConfirmed: false,
         },
         now,
       );
@@ -170,6 +185,7 @@ export class LedgerRecord {
         kind: 'transfer',
         counterpartyAccountId: otherAccountId,
         categoryId: null,
+        categoryConfirmed: false,
       },
       now,
     );
@@ -188,6 +204,7 @@ export class LedgerRecord {
       {
         kind,
         categoryId,
+        categoryConfirmed: false,
         accountId,
         counterpartyAccountId: null,
       },
@@ -273,6 +290,7 @@ export class LedgerRecord {
       accountId: input.accountId,
       counterpartyAccountId: null,
       categoryId: input.categoryId,
+      categoryConfirmed: false,
       amountCents: input.amountCents,
       currency: input.currency ?? DEFAULT_ACCOUNT_CURRENCY,
       bookedAt: input.bookedAt ?? input.now,
@@ -298,6 +316,7 @@ export class LedgerRecord {
       accountId: this.accountId,
       counterpartyAccountId: this.counterpartyAccountId,
       categoryId: this.categoryId,
+      categoryConfirmed: this.categoryConfirmed,
       amountCents: this.amountCents,
       currency: this.currency,
       bookedAt: this.bookedAt,

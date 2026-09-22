@@ -82,6 +82,9 @@ export class UpdateRecord {
     if (input.note != null) {
       next = next.setNote(input.note, now);
     }
+    if (input.categoryConfirmed != null) {
+      next = next.setCategoryConfirmed(input.categoryConfirmed, now);
+    }
 
     await this.records.save(next);
     return next;

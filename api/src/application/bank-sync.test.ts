@@ -86,11 +86,28 @@ describe('bank connection use cases', () => {
     expect(imported.some((record) => record.kind === 'income')).toBe(true);
     expect(imported.filter((record) => record.kind === 'expense').length).toBeGreaterThan(0);
     expect(imported.find((record) => record.note === 'Café')?.clearing).toBe('uncleared');
-    expect(imported.find((record) => record.kind === 'expense')?.categoryId).toBe(
-      AIS_EXPENSE_CATEGORY_ID,
+    expect(imported.every((record) => record.categoryConfirmed === false)).toBe(true);
+    expect(imported.find((record) => record.note === 'Carrefour')?.categoryId).toBe(
+      'food_drinks.groceries',
     );
-    expect(imported.find((record) => record.kind === 'income')?.categoryId).toBe(
-      AIS_INCOME_CATEGORY_ID,
+    expect(imported.find((record) => record.note === 'Salaire')?.categoryId).toBe(
+      'income.wage_invoices',
+    );
+    expect(imported.find((record) => record.note === 'EDF')?.categoryId).toBe(
+      'housing.energy_utilities',
+    );
+    expect(imported.find((record) => record.note === 'Spotify')?.categoryId).toBe(
+      'life_entertainment.tv_streaming',
+    );
+    expect(imported.find((record) => record.note === 'Loyer')?.categoryId).toBe('housing.rent');
+    expect(imported.find((record) => record.note === 'Remboursement')?.categoryId).toBe(
+      'income.refunds',
+    );
+    expect(imported.find((record) => record.note === 'Restaurant')?.categoryId).toBe(
+      'food_drinks.restaurant_fast_food',
+    );
+    expect(imported.find((record) => record.note === 'Café')?.categoryId).toBe(
+      'food_drinks.bar_cafe',
     );
   });
 
@@ -124,7 +141,95 @@ describe('bank connection use cases', () => {
     expect(listed.find((record) => record.id === carrefour.id)?.categoryId).toBe(
       'food_drinks.groceries',
     );
+    expect(listed.find((record) => record.note === 'Boulangerie')?.categoryId).toBe(
+      AIS_EXPENSE_CATEGORY_ID,
+    );
+    expect(listed.find((record) => record.note === 'Boulangerie')?.categoryConfirmed).toBe(false);
     expect(bank.lastFrom).toEqual(new Date('2026-09-20T10:00:00.000Z'));
+  });
+
+  it('prefills a known label without confirming it', async () => {
+    const { start, complete, sync, records, bank } = setup();
+    const started = await start.execute(USER_ID, REDIRECT);
+    const [account] = await complete.execute(USER_ID, started.id);
+    bank.extraTransactions.push({
+      externalId: 'sandbox-tx-leclerc',
+      accountExternalId: SANDBOX_CHECKING_EXTERNAL_ID,
+      signedAmountCents: -76_40,
+      bookedAt: new Date('2026-09-21T10:00:00.000Z'),
+      label: 'E.LECLERC CB*0098',
+      pending: false,
+    });
+
+    await sync.execute(USER_ID, account!.id);
+    const leclerc = (await records.listByUser(USER_ID)).find((record) =>
+      record.note.includes('LECLERC'),
+    );
+    expect(leclerc?.categoryId).toBe('food_drinks.groceries');
+    expect(leclerc?.categoryConfirmed).toBe(false);
+  });
+
+  it('remembers a confirmed category for the same account label without confirming the new record', async () => {
+    const { start, complete, sync, records, update, clock, bank } = setup();
+    const started = await start.execute(USER_ID, REDIRECT);
+    const [account] = await complete.execute(USER_ID, started.id);
+    bank.extraTransactions.push({
+      externalId: 'sandbox-tx-qingle',
+      accountExternalId: SANDBOX_CHECKING_EXTERNAL_ID,
+      signedAmountCents: 6_00,
+      bookedAt: new Date('2026-09-21T10:00:00.000Z'),
+      label: 'VIR INST MLLE QINGLET',
+      pending: false,
+    });
+    await sync.execute(USER_ID, account!.id);
+    const first = (await records.listByUser(USER_ID)).find((record) =>
+      record.note.includes('QINGLET'),
+    )!;
+    expect(first.categoryId).toBe(AIS_INCOME_CATEGORY_ID);
+    expect(first.categoryConfirmed).toBe(false);
+
+    clock.advance(1000);
+    await update.execute(USER_ID, first.id, {
+      categoryId: 'income.refunds',
+      categoryConfirmed: true,
+    });
+
+    bank.extraTransactions.push({
+      externalId: 'sandbox-tx-qingle-2',
+      accountExternalId: SANDBOX_CHECKING_EXTERNAL_ID,
+      signedAmountCents: 12_00,
+      bookedAt: new Date('2026-09-22T10:00:00.000Z'),
+      label: 'VIR INST MLLE QINGLET',
+      pending: false,
+    });
+    clock.advance(1000);
+    await sync.execute(USER_ID, account!.id);
+
+    const imported = (await records.listByUser(USER_ID)).filter((record) =>
+      record.note.includes('QINGLET'),
+    );
+    expect(imported).toHaveLength(2);
+    const second = imported.find((record) => record.id !== first.id);
+    expect(second?.categoryId).toBe('income.refunds');
+    expect(second?.categoryConfirmed).toBe(false);
+    expect(imported.find((record) => record.id === first.id)?.categoryConfirmed).toBe(true);
+  });
+
+  it('does not rewrite a confirmed category when the bank snapshot is applied again', async () => {
+    const { start, complete, sync, records, update, clock } = setup();
+    const started = await start.execute(USER_ID, REDIRECT);
+    const [account] = await complete.execute(USER_ID, started.id);
+    const carrefour = (await records.listByUser(USER_ID)).find(
+      (record) => record.note === 'Carrefour',
+    )!;
+    clock.advance(1000);
+    await update.execute(USER_ID, carrefour.id, { categoryConfirmed: true });
+
+    const result = await sync.execute(USER_ID, account!.id);
+    expect(result.importedCount).toBe(0);
+    const kept = await records.getById(carrefour.id);
+    expect(kept?.categoryId).toBe('food_drinks.groceries');
+    expect(kept?.categoryConfirmed).toBe(true);
   });
 
   it('rejects complete/sync/disconnect for the wrong user or cash accounts', async () => {

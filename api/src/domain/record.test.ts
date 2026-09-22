@@ -32,6 +32,7 @@ describe('LedgerRecord', () => {
     expect(record.clearing).toBe('cleared');
     expect(record.note).toBe('Courses');
     expect(record.categoryId).toBe('food_drinks.groceries');
+    expect(record.categoryConfirmed).toBe(false);
     expect(record.counterpartyAccountId).toBeNull();
     expect(record.bookedAt).toEqual(NOW);
   });
@@ -110,12 +111,16 @@ describe('LedgerRecord', () => {
     expect(record.kind).toBe('expense');
     expect(record.amountCents).toBe(1299);
     expect(record.categoryId).toBe(AIS_EXPENSE_CATEGORY_ID);
+    expect(record.categoryConfirmed).toBe(false);
     expect(record.externalId).toBe('tx-1');
     expect(record.isAis).toBe(true);
     expect(record.note).toBe('Carrefour');
 
-    const recategorized = record.recategorize('food_drinks.groceries', later);
+    const confirmed = record.setCategoryConfirmed(true, later);
+    expect(confirmed.categoryConfirmed).toBe(true);
+    const recategorized = confirmed.recategorize('food_drinks.groceries', later);
     expect(recategorized.categoryId).toBe('food_drinks.groceries');
+    expect(recategorized.categoryConfirmed).toBe(false);
     expect(record.setNote('Courses', later).note).toBe('Courses');
     expect(() => record.setAmount(10, later)).toThrow(CannotMutateAisRecord);
     expect(() => record.setBookedAt(later, later)).toThrow(CannotMutateAisRecord);
@@ -213,5 +218,41 @@ describe('LedgerRecord', () => {
     expect(synced.clearing).toBe('cleared');
     expect(synced.note).toBe('Salaire net');
     expect(synced.categoryId).toBe('income.wage_invoices');
+    expect(synced.categoryConfirmed).toBe(false);
+  });
+
+  it('keeps a confirmation across a bank snapshot and drops it when the kind changes', () => {
+    const later = new Date('2026-09-20T11:00:00.000Z');
+    const confirmed = LedgerRecord.createFromAis({
+      id: 'ais-3',
+      userId: 'user-1',
+      accountId: 'bank-1',
+      signedAmountCents: -1299,
+      externalId: 'tx-3',
+      label: 'Carrefour',
+      categoryId: 'food_drinks.groceries',
+      now: NOW,
+    }).setCategoryConfirmed(true, later);
+    expect(confirmed.categoryId).toBe('food_drinks.groceries');
+    expect(confirmed.categoryConfirmed).toBe(true);
+
+    const synced = confirmed.applyAisSnapshot(
+      {
+        signedAmountCents: -1300,
+        bookedAt: later,
+        pending: false,
+        label: 'Carrefour Market',
+      },
+      later,
+    );
+    expect(synced.categoryId).toBe('food_drinks.groceries');
+    expect(synced.categoryConfirmed).toBe(true);
+
+    const transfer = synced.convertToTransfer('cash-1', later);
+    expect(transfer.categoryConfirmed).toBe(false);
+    expect(() => transfer.setCategoryConfirmed(true, later)).toThrow(InvalidRecord);
+
+    const restored = transfer.convertToLedger('expense', 'food_drinks.groceries', later);
+    expect(restored.categoryConfirmed).toBe(false);
   });
 });

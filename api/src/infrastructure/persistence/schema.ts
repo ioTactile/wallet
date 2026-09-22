@@ -96,6 +96,7 @@ export const records = pgTable(
     currency: text('currency').notNull(),
     bookedAt: timestamp('booked_at', { withTimezone: true, mode: 'date' }).notNull(),
     clearing: text('clearing').notNull(),
+    categoryConfirmed: boolean('category_confirmed').notNull().default(false),
     note: text('note').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),

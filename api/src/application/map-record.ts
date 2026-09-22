@@ -14,6 +14,7 @@ export function mapRecord(record: LedgerRecord): RecordDto {
     currency: 'EUR' as const,
     bookedAt: record.bookedAt.toISOString(),
     clearing: record.clearing,
+    categoryConfirmed: record.categoryConfirmed,
     note: record.note,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),

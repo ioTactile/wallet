@@ -6,17 +6,21 @@ import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/brand-header';
+import { RecordCategoryMark } from '@/components/record-category-mark';
+import { RecordSwipeRow } from '@/components/record-swipe-row';
 import { Icons } from '@/constants/icons';
 import { Colors, Spacing } from '@/constants/theme';
 import { formatMoney } from '@/domain/money';
 import { dataScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
 import {
+  categoryConfirmationUpdate,
   groupRecordsByWeek,
   periodRange,
   type RecordPeriod,
 } from '@/screens/records/records-view-model';
-import { useRecordList } from '@/screens/records/use-record-queries';
+import { recordDetailHref } from '@/screens/records/records-navigation';
+import { useRecordList, useUpdateRecord } from '@/screens/records/use-record-queries';
 
 const PERIODS: RecordPeriod[] = ['today', 'week', 'month', 'year'];
 
@@ -38,6 +42,7 @@ export function RecordsListScreen() {
   const range = useMemo(() => periodRange(period, new Date()), [period]);
   const accountsQuery = useAccountList();
   const query = useRecordList({ ...range, accountIds });
+  const update = useUpdateRecord();
   const status = dataScreenStatus({ data: query.data?.records, error: query.error });
   const accounts = accountsQuery.data ?? [];
   const sections = query.data
@@ -94,30 +99,50 @@ export function RecordsListScreen() {
             </View>
           )}
           renderItem={({ item }) => (
-            <Pressable onPress={() => router.push(`/records/${item.id}`)} style={styles.row}>
-              <View style={[styles.swatch, { backgroundColor: item.color }]} />
-              <View style={styles.rowBody}>
-                <Text style={styles.rowTitle}>{item.title}</Text>
-                <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
-                {item.note ? (
-                  <Text style={styles.rowNote} numberOfLines={1}>
-                    {item.note}
+            <RecordSwipeRow
+              enabled={item.canConfirm}
+              confirmed={item.confirmed}
+              busy={update.isPending && update.variables?.id === item.id}
+              confirmLabel={t('record.confirm')}
+              unconfirmLabel={t('record.unconfirm')}
+              onPress={() => router.push(recordDetailHref(item.id))}
+              onToggle={() => {
+                if (!item.canConfirm || (update.isPending && update.variables?.id === item.id)) {
+                  return;
+                }
+                update.mutate({
+                  id: item.id,
+                  body: categoryConfirmationUpdate(item.confirmed),
+                });
+              }}
+            >
+              <View style={styles.row}>
+                <RecordCategoryMark color={item.color} confirmed={item.confirmed} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle}>{item.title}</Text>
+                  <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
+                  {item.note ? (
+                    <Text style={styles.rowNote} numberOfLines={1}>
+                      {item.note}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.rowAmount}>
+                  <Text
+                    style={[
+                      styles.amount,
+                      { color: item.amountCents < 0 ? colors.danger : '#2E7D32' },
+                    ]}
+                    selectable
+                  >
+                    {item.amountLabel}
                   </Text>
-                ) : null}
+                  {item.uncleared ? (
+                    <Text style={styles.badge}>{t('record.uncleared')}</Text>
+                  ) : null}
+                </View>
               </View>
-              <View style={styles.rowAmount}>
-                <Text
-                  style={[
-                    styles.amount,
-                    { color: item.amountCents < 0 ? colors.danger : '#2E7D32' },
-                  ]}
-                  selectable
-                >
-                  {item.amountLabel}
-                </Text>
-                {item.uncleared ? <Text style={styles.badge}>{t('record.uncleared')}</Text> : null}
-              </View>
-            </Pressable>
+            </RecordSwipeRow>
           )}
         />
       ) : null}
@@ -227,7 +252,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
   },
-  swatch: { width: 36, height: 36, borderRadius: 18 },
   rowBody: { flex: 1, minWidth: 0 },
   rowTitle: { fontWeight: '600' },
   rowSubtitle: { color: '#6B7280', fontSize: 13 },

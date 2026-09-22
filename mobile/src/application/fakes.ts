@@ -204,6 +204,7 @@ export function makeExpenseRecord(
     currency: DEFAULT_ACCOUNT_CURRENCY,
     bookedAt: FAKE_NOW,
     clearing: 'cleared',
+    categoryConfirmed: false,
     note: 'Courses',
     createdAt: FAKE_NOW,
     updatedAt: FAKE_NOW,
@@ -224,6 +225,7 @@ export function makeTransferRecord(
     currency: DEFAULT_ACCOUNT_CURRENCY,
     bookedAt: FAKE_NOW,
     clearing: 'cleared',
+    categoryConfirmed: false,
     note: '',
     createdAt: FAKE_NOW,
     updatedAt: FAKE_NOW,
@@ -268,6 +270,7 @@ export class InMemoryRecordRepository implements RecordRepository {
       bookedAt: body.bookedAt ?? FAKE_NOW,
       clearing: body.clearing ?? 'cleared',
       note: body.note ?? '',
+      categoryConfirmed: false,
       createdAt: FAKE_NOW,
       updatedAt: FAKE_NOW,
     };
@@ -299,6 +302,11 @@ export class InMemoryRecordRepository implements RecordRepository {
       bookedAt: body.bookedAt ?? current.bookedAt,
       clearing: body.clearing ?? current.clearing,
       note: body.note ?? current.note,
+      categoryConfirmed:
+        body.categoryConfirmed ??
+        (body.categoryId != null || (body.kind != null && body.kind !== current.kind)
+          ? false
+          : current.categoryConfirmed),
       createdAt: current.createdAt,
       updatedAt: FAKE_NOW,
     };

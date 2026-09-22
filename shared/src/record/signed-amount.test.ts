@@ -20,6 +20,7 @@ const base = {
   currency: DEFAULT_ACCOUNT_CURRENCY,
   bookedAt: NOW,
   clearing: 'cleared' as const,
+  categoryConfirmed: false,
   note: '',
   createdAt: NOW,
   updatedAt: NOW,

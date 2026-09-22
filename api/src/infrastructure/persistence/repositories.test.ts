@@ -271,6 +271,15 @@ describe('drizzle repositories (pglite)', () => {
       new Date('2026-09-20T11:00:00.000Z'),
     );
     await records.save(recategorized);
-    expect((await records.getById(ais.id))?.categoryId).toBe('food_drinks.groceries');
+    const stored = await records.getById(ais.id);
+    expect(stored?.categoryId).toBe('food_drinks.groceries');
+    expect(stored?.categoryConfirmed).toBe(false);
+
+    const confirmed = recategorized.setCategoryConfirmed(
+      true,
+      new Date('2026-09-20T12:00:00.000Z'),
+    );
+    await records.save(confirmed);
+    expect((await records.getById(ais.id))?.categoryConfirmed).toBe(true);
   });
 });

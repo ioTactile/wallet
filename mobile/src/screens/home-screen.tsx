@@ -130,7 +130,7 @@ export function HomeScreen() {
           locale={i18n.language}
           onRetry={() => recordsQuery.refetch()}
           onShowMore={() => router.push(recordsListHref())}
-          onRecordPress={(id) => router.push(recordDetailHref(id))}
+          onRecordPress={(id) => router.push(recordDetailHref(id, { from: 'home' }))}
         />
         <BalanceTrendCard
           key={`${balancePeriod}:${balanceFilter}`}

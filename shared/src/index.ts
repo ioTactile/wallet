@@ -80,6 +80,12 @@ export {
   type CategoryId,
 } from './category/catalog.js';
 export { CATEGORY_LABELS, categoryLabel } from './category/labels.js';
+export {
+  bankLabelFingerprint,
+  suggestCategory,
+  type CategoryMemory,
+  type SuggestCategoryInput,
+} from './category/suggest-category.js';
 export { UI_MESSAGES, i18nResources, type UiMessageKey } from './i18n/ui.js';
 export { DEFAULT_LOCALE, LOCALES, resolveLocale, type Locale } from './locale.js';
 export { RECORD_CLEARING, RECORD_KINDS, type RecordClearing, type RecordKind } from './record.js';

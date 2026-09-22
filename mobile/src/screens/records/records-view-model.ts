@@ -22,6 +22,8 @@ export type RecordRowVm = {
   amountCents: number;
   color: string;
   uncleared: boolean;
+  confirmed: boolean;
+  canConfirm: boolean;
   bookedAt: string;
 };
 
@@ -109,8 +111,14 @@ export function toRecordRow(
     amountCents,
     color: recordColor(record),
     uncleared: record.clearing === 'uncleared',
+    confirmed: record.categoryConfirmed,
+    canConfirm: record.kind !== 'transfer',
     bookedAt: record.bookedAt,
   };
+}
+
+export function categoryConfirmationUpdate(confirmed: boolean): UpdateRecordBody {
+  return { categoryConfirmed: !confirmed };
 }
 
 export function groupRecordsByWeek(

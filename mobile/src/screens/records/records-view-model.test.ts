@@ -13,6 +13,7 @@ import {
   calculatorCents,
   canSubmitCalculator,
   canSubmitRecordEdit,
+  categoryConfirmationUpdate,
   destinationAccounts,
   draftForKind,
   formatRecordDay,
@@ -76,6 +77,24 @@ describe('records view-model', () => {
     expect(row.subtitle).toBe('Espèces');
     expect(row.amountLabel).toBe('-76,40 €');
     expect(row.uncleared).toBe(true);
+    expect(row.confirmed).toBe(false);
+    expect(row.canConfirm).toBe(true);
+  });
+
+  it('marks a confirmed expense and keeps transfers out of category confirmation', () => {
+    const accounts = [makeCashAccount({ id: CASH_ID, name: 'Espèces' })];
+    const confirmed = toRecordRow(
+      makeExpenseRecord({ categoryConfirmed: true }),
+      accounts,
+      undefined,
+      () => 'Courses',
+    );
+    expect(confirmed.confirmed).toBe(true);
+    expect(categoryConfirmationUpdate(confirmed.confirmed)).toEqual({ categoryConfirmed: false });
+
+    const transfer = toRecordRow(makeTransferRecord(), accounts, undefined, () => 'Courses');
+    expect(transfer.canConfirm).toBe(false);
+    expect(categoryConfirmationUpdate(false)).toEqual({ categoryConfirmed: true });
   });
 
   it('groups records by ISO week and accumulates opening balances', () => {

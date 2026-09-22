@@ -20,7 +20,7 @@ import { formatMoney } from '@/domain/money';
 import { RecordApiError } from '@/domain/ports';
 import { detailScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
-import { recordsListHref } from '@/screens/records/records-navigation';
+import { recordExitHref } from '@/screens/records/records-navigation';
 import {
   applyRecordEditParams,
   canSubmitRecordEdit,
@@ -46,14 +46,17 @@ export function RecordDetailScreen() {
     toAccountId: toAccountParam,
     fromAccountId: fromAccountParam,
     kind: kindParam,
+    from: fromParam,
   } = useLocalSearchParams<{
     id: string;
     categoryId?: string;
     toAccountId?: string;
     fromAccountId?: string;
     kind?: string;
+    from?: string;
   }>();
   const recordId = typeof id === 'string' ? id : '';
+  const exitHref = recordExitHref(typeof fromParam === 'string' ? fromParam : undefined);
   const query = useRecord(recordId);
   const accountsQuery = useAccountList();
   const update = useUpdateRecord();
@@ -103,7 +106,7 @@ export function RecordDetailScreen() {
     }),
     onConfirm: async () => {
       await remove.mutateAsync(recordId);
-      router.dismissTo(recordsListHref());
+      router.dismissTo(exitHref);
     },
   });
 
@@ -121,13 +124,13 @@ export function RecordDetailScreen() {
       uncleared: values.uncleared,
     });
     if (body == null) {
-      router.dismissTo(recordsListHref());
+      router.dismissTo(exitHref);
       return;
     }
     setError(null);
     try {
       await update.mutateAsync({ id: recordId, body });
-      router.dismissTo(recordsListHref());
+      router.dismissTo(exitHref);
     } catch (cause) {
       setError(cause instanceof RecordApiError ? t('record.saveError') : t('record.saveError'));
     }
@@ -150,7 +153,7 @@ export function RecordDetailScreen() {
         title={t('record.detailTitle')}
         leftIcon="close"
         rightIcon="checkmark"
-        onLeftPress={() => router.dismissTo(recordsListHref())}
+        onLeftPress={() => router.dismissTo(exitHref)}
         onRightPress={
           canSave
             ? () => {
@@ -202,6 +205,7 @@ export function RecordDetailScreen() {
                           excludeAccountId: record.accountId,
                           selectedId: draft.otherAccountId ?? '',
                           field: 'fromAccountId',
+                          from: fromParam ?? '',
                         },
                       })
                     }
@@ -224,6 +228,7 @@ export function RecordDetailScreen() {
                           excludeAccountId: sourceAccountId,
                           selectedId: draft.otherAccountId ?? '',
                           field: 'toAccountId',
+                          from: fromParam ?? '',
                         },
                       })
                     }
@@ -238,7 +243,7 @@ export function RecordDetailScreen() {
                   onPress={() =>
                     router.push({
                       pathname: '/records/category',
-                      params: { kind: draft.kind, recordId },
+                      params: { kind: draft.kind, recordId, from: fromParam ?? '' },
                     })
                   }
                 >

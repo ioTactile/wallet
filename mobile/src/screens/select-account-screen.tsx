@@ -12,16 +12,24 @@ import { destinationAccounts } from '@/screens/records/records-view-model';
 export function SelectAccountScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { recordId, excludeAccountId, selectedId, field } = useLocalSearchParams<{
+  const {
+    recordId,
+    excludeAccountId,
+    selectedId,
+    field,
+    from: fromParam,
+  } = useLocalSearchParams<{
     recordId?: string;
     excludeAccountId?: string;
     selectedId?: string;
     field?: string;
+    from?: string;
   }>();
   const query = useAccountList();
   const accounts = destinationAccounts(query.data ?? [], excludeAccountId ?? '');
   const colors = Colors.light;
   const paramName = field === 'fromAccountId' ? 'fromAccountId' : 'toAccountId';
+  const from = typeof fromParam === 'string' ? fromParam : undefined;
 
   function select(id: string) {
     if (!recordId) {
@@ -30,8 +38,8 @@ export function SelectAccountScreen() {
     }
     router.dismissTo(
       paramName === 'fromAccountId'
-        ? recordDetailHref(recordId, { fromAccountId: id })
-        : recordDetailHref(recordId, { toAccountId: id }),
+        ? recordDetailHref(recordId, { fromAccountId: id, from })
+        : recordDetailHref(recordId, { toAccountId: id, from }),
     );
   }
 

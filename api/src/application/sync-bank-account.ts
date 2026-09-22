@@ -1,4 +1,4 @@
-import { canSyncFromBank } from '@wallet/shared';
+import { canSyncFromBank, suggestCategory, type CategoryMemory } from '@wallet/shared';
 
 import { AccountNotFound, CannotSyncAccount } from '../domain/errors.js';
 import type { BankConnection } from '../domain/bank-connection.js';
@@ -53,6 +53,7 @@ export class SyncBankAccount {
       account.lastSyncedAt ? { from: account.lastSyncedAt } : undefined,
     );
 
+    const history = categoryMemory(await this.records.listByUser(userId));
     let importedCount = 0;
     for (const transaction of transactions) {
       if (transaction.signedAmountCents === 0) {
@@ -60,6 +61,7 @@ export class SyncBankAccount {
       }
       const existing = await this.records.findByExternalId(account.id, transaction.externalId);
       if (!existing) {
+        const kind = transaction.signedAmountCents < 0 ? 'expense' : 'income';
         await this.records.save(
           LedgerRecord.createFromAis({
             id: this.ids.generate(),
@@ -68,6 +70,13 @@ export class SyncBankAccount {
             signedAmountCents: transaction.signedAmountCents,
             externalId: transaction.externalId,
             label: transaction.label,
+            categoryId:
+              suggestCategory({
+                label: transaction.label,
+                kind,
+                accountId: account.id,
+                history,
+              }) ?? undefined,
             bookedAt: transaction.bookedAt,
             clearing: transaction.pending ? 'uncleared' : 'cleared',
             now,
@@ -93,4 +102,21 @@ export class SyncBankAccount {
     await this.links.save(link.markSynced(now));
     return { importedCount };
   }
+}
+
+function categoryMemory(records: readonly LedgerRecord[]): CategoryMemory[] {
+  return records.flatMap((record) => {
+    if (record.kind === 'transfer' || record.categoryId == null) {
+      return [];
+    }
+    return [
+      {
+        accountId: record.accountId,
+        label: record.note,
+        kind: record.kind,
+        categoryId: record.categoryId,
+        categoryConfirmed: record.categoryConfirmed,
+      },
+    ];
+  });
 }

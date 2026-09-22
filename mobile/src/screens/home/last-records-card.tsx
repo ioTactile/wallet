@@ -1,8 +1,7 @@
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Icons } from '@/constants/icons';
+import { RecordCategoryMark } from '@/components/record-category-mark';
 import { Colors, Spacing } from '@/constants/theme';
 import type { DataScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { formatRecordDay, type RecordRowVm } from '@/screens/records/records-view-model';
@@ -61,11 +60,7 @@ export function LastRecordsCard({
               onPress={() => onRecordPress(row.id)}
               style={[styles.row, index < rows.length - 1 ? styles.rowDivider : null]}
             >
-              <View style={[styles.swatch, { backgroundColor: row.color }]}>
-                {row.uncleared ? null : (
-                  <SymbolView name={Icons.checkmark} tintColor={colors.onBrand} size={16} />
-                )}
-              </View>
+              <RecordCategoryMark color={row.color} confirmed={row.confirmed} />
               <View style={styles.rowBody}>
                 <Text style={styles.rowTitle} numberOfLines={1}>
                   {row.title}
@@ -153,13 +148,6 @@ const styles = StyleSheet.create({
   rowDivider: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#E5E7EB',
-  },
-  swatch: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   rowBody: {
     flex: 1,

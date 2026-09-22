@@ -27,6 +27,7 @@ function expenseDto(overrides: Record<string, unknown> = {}) {
     currency: DEFAULT_ACCOUNT_CURRENCY,
     bookedAt: NOW,
     clearing: 'cleared',
+    categoryConfirmed: false,
     note: 'Courses',
     createdAt: NOW,
     updatedAt: NOW,
@@ -45,6 +46,7 @@ function transferDto(overrides: Record<string, unknown> = {}) {
     currency: DEFAULT_ACCOUNT_CURRENCY,
     bookedAt: NOW,
     clearing: 'cleared',
+    categoryConfirmed: false,
     note: '',
     createdAt: NOW,
     updatedAt: NOW,
@@ -59,6 +61,7 @@ describe('recordSchema', () => {
     if (parsed.kind !== 'expense') throw new Error('expected expense');
     expect(parsed.accountId).toBe(CASH_ID);
     expect(parsed.categoryId).toBe('food_drinks.groceries');
+    expect(parsed.categoryConfirmed).toBe(false);
     expect(parsed.amountCents).toBe(199);
     expect(parsed).not.toHaveProperty('fromAccountId');
   });
@@ -144,6 +147,9 @@ describe('createRecordBodySchema', () => {
 describe('updateRecordBodySchema', () => {
   it('accepts a partial update and trims the note', () => {
     expect(updateRecordBodySchema.parse({ note: '  Hello ' })).toEqual({ note: 'Hello' });
+    expect(updateRecordBodySchema.parse({ categoryConfirmed: true })).toEqual({
+      categoryConfirmed: true,
+    });
   });
 
   it('accepts a kind conversion to transfer or ledger', () => {

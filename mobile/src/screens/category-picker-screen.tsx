@@ -17,9 +17,14 @@ import { newRecordHref, recordDetailHref } from '@/screens/records/records-navig
 export function CategoryPickerScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { kind: kindParam, recordId } = useLocalSearchParams<{
+  const {
+    kind: kindParam,
+    recordId,
+    from: fromParam,
+  } = useLocalSearchParams<{
     kind?: string;
     recordId?: string;
+    from?: string;
   }>();
   const kind: RecordKind = kindParam === 'income' ? 'income' : 'expense';
   const allowed = new Set(categoriesFor(kind).map((category) => category.id));
@@ -32,6 +37,7 @@ export function CategoryPickerScreen() {
         recordDetailHref(recordId, {
           categoryId: id,
           kind,
+          from: typeof fromParam === 'string' ? fromParam : undefined,
         }),
       );
       return;

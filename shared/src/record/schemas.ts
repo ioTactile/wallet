@@ -26,6 +26,7 @@ const recordBaseFields = {
   currency: z.literal(DEFAULT_ACCOUNT_CURRENCY),
   bookedAt: z.iso.datetime(),
   clearing: clearingSchema,
+  categoryConfirmed: z.boolean(),
   note: noteSchema,
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -105,6 +106,7 @@ export const updateRecordBodySchema = z
     amountCents: centsSchema.optional(),
     bookedAt: z.iso.datetime().optional(),
     clearing: clearingSchema.optional(),
+    categoryConfirmed: z.boolean().optional(),
     note: noteSchema.optional(),
   })
   .strict()

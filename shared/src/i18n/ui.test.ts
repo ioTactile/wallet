@@ -78,6 +78,8 @@ describe('ui messages', () => {
       'record.empty',
       'record.retry',
       'record.detailTitle',
+      'record.confirm',
+      'record.unconfirm',
       'record.new',
       'record.newTransfer',
       'record.amount',

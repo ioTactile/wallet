@@ -105,6 +105,10 @@ export async function applyAuthSchema(db: AppDatabase): Promise<void> {
       ADD COLUMN IF NOT EXISTS external_id text
   `);
   await db.execute(`
+    ALTER TABLE records
+      ADD COLUMN IF NOT EXISTS category_confirmed boolean NOT NULL DEFAULT false
+  `);
+  await db.execute(`
     CREATE UNIQUE INDEX IF NOT EXISTS records_account_external_id_uidx
       ON records (account_id, external_id)
       WHERE external_id IS NOT NULL
