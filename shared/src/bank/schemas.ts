@@ -27,9 +27,20 @@ export const bankRedirectUriSchema = z
   .max(2000)
   .refine(isAllowedBankRedirectUri, { message: 'redirect_uri_not_allowed' });
 
+export const aspspRefSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    country: z
+      .string()
+      .trim()
+      .regex(/^[A-Z]{2}$/),
+  })
+  .strict();
+
 export const startBankConnectionBodySchema = z
   .object({
     redirectUri: bankRedirectUriSchema,
+    aspsp: aspspRefSchema.optional(),
   })
   .strict();
 
@@ -37,6 +48,17 @@ export const startBankConnectionResponseSchema = z
   .object({
     id: z.uuid(),
     authorizationUrl: z.url(),
+  })
+  .strict();
+
+export const bankConnectionOptionsSchema = z
+  .object({
+    provider: z.enum(['sandbox', 'gocardless', 'enablebanking']),
+    selectUrl: z.url().nullable(),
+    country: z
+      .string()
+      .trim()
+      .regex(/^[A-Z]{2}$/),
   })
   .strict();
 
@@ -71,8 +93,10 @@ export const enableBankingReturnQuerySchema = z.object({
   error: z.string().trim().min(1).max(200).optional(),
 });
 
+export type AspspRef = z.infer<typeof aspspRefSchema>;
 export type StartBankConnectionBody = z.infer<typeof startBankConnectionBodySchema>;
 export type StartBankConnectionResponse = z.infer<typeof startBankConnectionResponseSchema>;
+export type BankConnectionOptions = z.infer<typeof bankConnectionOptionsSchema>;
 export type SyncBankAccountResponse = z.infer<typeof syncBankAccountResponseSchema>;
 export type SandboxAuthorizeQuery = z.infer<typeof sandboxAuthorizeQuerySchema>;
 export type GocardlessReturnQuery = z.infer<typeof gocardlessReturnQuerySchema>;

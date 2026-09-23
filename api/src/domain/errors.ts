@@ -136,3 +136,9 @@ export class CannotDisconnectAccount extends DomainError {
     super('cannot_disconnect_account', 'Only bank accounts can be disconnected');
   }
 }
+
+export class AspspRequired extends DomainError {
+  constructor() {
+    super('aspsp_required', 'ASPSP selection is required for Enable Banking');
+  }
+}

@@ -98,11 +98,13 @@ export class FakeBankConnection implements BankConnection {
     userId: string;
     redirectUri: string;
     state: string;
+    aspsp?: { name: string; country: string };
   }): Promise<BankConsent> {
     if (input.userId.trim().length === 0) {
       throw new Error('Sandbox consent requires a wallet user id');
     }
     void input.redirectUri;
+    void input.aspsp;
     const providerConnectionId = `sandbox:${input.state}`;
     const url = new URL('/bank/sandbox/authorize', this.publicApiUrl);
     url.searchParams.set('connectionId', input.state);

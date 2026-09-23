@@ -11,6 +11,7 @@ import { EnsureDefaultCashAccount } from './application/ensure-default-cash-acco
 import { FinalizeBankAuthorization } from './application/finalize-bank-authorization.js';
 import { GetAccount } from './application/get-account.js';
 import { GetAccountBalances } from './application/get-account-balances.js';
+import { GetBankConnectionOptions } from './application/get-bank-connection-options.js';
 import { GetBankLinkRedirect } from './application/get-bank-link-redirect.js';
 import { GetCurrentUser } from './application/get-current-user.js';
 import { ListAccounts } from './application/list-accounts.js';
@@ -109,6 +110,7 @@ async function main() {
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
     getBankLinkRedirect: new GetBankLinkRedirect(links),
+    getBankConnectionOptions: new GetBankConnectionOptions(bank, env),
   });
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });

@@ -42,6 +42,7 @@ describe('ui messages', () => {
       'account.create',
       'account.cancel',
       'account.connectBankTitle',
+      'account.selectBankTitle',
       'account.connectBank',
       'account.connectBankHint',
       'account.connectBankError',

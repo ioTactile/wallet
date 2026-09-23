@@ -56,6 +56,8 @@ export {
   type UpdateAccountBody,
 } from './account/schemas.js';
 export {
+  aspspRefSchema,
+  bankConnectionOptionsSchema,
   bankRedirectUriSchema,
   enableBankingReturnQuerySchema,
   gocardlessReturnQuerySchema,
@@ -64,6 +66,8 @@ export {
   startBankConnectionBodySchema,
   startBankConnectionResponseSchema,
   syncBankAccountResponseSchema,
+  type AspspRef,
+  type BankConnectionOptions,
   type EnableBankingReturnQuery,
   type GocardlessReturnQuery,
   type SandboxAuthorizeQuery,

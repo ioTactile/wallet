@@ -80,18 +80,21 @@ export class EnableBankingBankConnection implements BankConnection {
     userId: string;
     redirectUri: string;
     state: string;
+    aspsp?: { name: string; country: string };
   }): Promise<BankConsent> {
     if (input.userId.trim().length === 0) {
       throw new Error('Enable Banking consent requires a wallet user id');
     }
     void input.redirectUri;
+    const aspspName = input.aspsp?.name.trim() || this.aspspName;
+    const aspspCountry = input.aspsp?.country.trim() || this.aspspCountry;
     const validUntil = new Date(this.now().getTime() + CONSENT_DAYS * 24 * 60 * 60 * 1000);
     const redirect = new URL('/bank/enablebanking/return', this.publicApiUrl);
     const started = await this.request<AuthResponse>('/auth', {
       method: 'POST',
       body: {
         access: { valid_until: validUntil.toISOString() },
-        aspsp: { name: this.aspspName, country: this.aspspCountry },
+        aspsp: { name: aspspName, country: aspspCountry },
         state: encodeEnableBankingState({ connectionId: input.state }, this.stateSecret),
         redirect_url: redirect.toString(),
         psu_type: 'personal',

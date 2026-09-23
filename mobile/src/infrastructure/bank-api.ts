@@ -1,10 +1,13 @@
 import {
   accountsResponseSchema,
   accountSchema,
+  bankConnectionOptionsSchema,
   startBankConnectionBodySchema,
   startBankConnectionResponseSchema,
   syncBankAccountResponseSchema,
   type Account,
+  type AspspRef,
+  type BankConnectionOptions,
 } from '@wallet/shared';
 
 import {
@@ -38,11 +41,22 @@ export class HttpBankApi implements BankApi {
     private readonly auth: Pick<AuthApi, 'refresh'>,
   ) {}
 
-  async start(redirectUri: string): Promise<StartBankConnectionResult> {
+  async connectionOptions(): Promise<BankConnectionOptions> {
+    return bankConnectionOptionsSchema.parse(
+      await this.requestJson('/bank/connection-options', { method: 'GET' }),
+    );
+  }
+
+  async start(redirectUri: string, aspsp?: AspspRef): Promise<StartBankConnectionResult> {
     return startBankConnectionResponseSchema.parse(
       await this.requestJson('/bank/connections', {
         method: 'POST',
-        body: JSON.stringify(startBankConnectionBodySchema.parse({ redirectUri })),
+        body: JSON.stringify(
+          startBankConnectionBodySchema.parse({
+            redirectUri,
+            ...(aspsp ? { aspsp } : {}),
+          }),
+        ),
       }),
     );
   }

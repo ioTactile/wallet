@@ -4,6 +4,7 @@ import { AIS_EXPENSE_CATEGORY_ID, AIS_INCOME_CATEGORY_ID } from '@wallet/shared'
 
 import {
   AccountNotFound,
+  AspspRequired,
   BankLinkNotCompletable,
   BankLinkNotFound,
   CannotDeleteAisRecord,
@@ -65,6 +66,26 @@ describe('bank connection use cases', () => {
     expect(started.authorizationUrl).toContain('connectionId=id-1');
     expect((await links.getById(started.id))?.status).toBe('pending');
     expect((await links.getById(started.id))?.provider).toBe('sandbox');
+  });
+
+  it('requires an ASPSP when the provider is Enable Banking', async () => {
+    const accounts = new InMemoryAccountRepository();
+    const records = new InMemoryRecordRepository();
+    const links = new InMemoryBankLinkRepository();
+    const ids = new SequentialIds();
+    const clock = new FixedClock(new Date('2026-09-20T10:00:00.000Z'));
+    const bank = Object.assign(new FakeBankConnection('http://127.0.0.1:3000'), {
+      provider: 'enablebanking' as const,
+    });
+    const start = new StartBankConnection(links, bank, ids, clock);
+    await expect(start.execute(USER_ID, REDIRECT)).rejects.toBeInstanceOf(AspspRequired);
+    const started = await start.execute(USER_ID, REDIRECT, {
+      name: 'Boursorama Banque',
+      country: 'FR',
+    });
+    expect(started.id).toBe('id-1');
+    void accounts;
+    void records;
   });
 
   it('completes a connection by creating the demo bank account and importing AIS records', async () => {

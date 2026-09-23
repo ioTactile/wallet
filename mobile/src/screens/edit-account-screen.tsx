@@ -35,10 +35,9 @@ import {
   useAccount,
   useArchiveAccount,
   useDeleteAccount,
-  useDisconnectBankAccount,
-  useSyncBankAccount,
   useUpdateAccount,
 } from '@/screens/accounts/use-account-queries';
+import { useDisconnectBankAccount, useSyncBankAccount } from '@/screens/accounts/use-bank-queries';
 
 export function EditAccountScreen() {
   const { t, i18n } = useTranslation();

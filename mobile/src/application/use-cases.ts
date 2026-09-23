@@ -9,8 +9,9 @@ import { SecurePinVault, SecureSessionVault } from '@/infrastructure/secure-vaul
 
 import {
   CompleteBankConnection,
-  ConnectDemoBank,
+  ConnectBank,
   DisconnectBankAccount,
+  GetBankConnectionOptions,
   StartBankConnection,
   SyncBankAccount,
 } from './bank';
@@ -66,7 +67,10 @@ export const accountUseCases = {
 export const bankUseCases = {
   start: new StartBankConnection(bankApi),
   complete: new CompleteBankConnection(bankApi),
-  connectDemo: new ConnectDemoBank(bankApi, bankAuthSession),
+  connectionOptions: new GetBankConnectionOptions(bankApi),
+  connect: new ConnectBank(bankApi, bankAuthSession),
+  /** @deprecated Prefer connect */
+  connectDemo: new ConnectBank(bankApi, bankAuthSession),
   sync: new SyncBankAccount(bankApi),
   disconnect: new DisconnectBankAccount(bankApi),
 };

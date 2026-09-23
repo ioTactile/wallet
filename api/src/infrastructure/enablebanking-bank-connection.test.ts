@@ -60,7 +60,7 @@ function bank(fetchImpl: typeof fetch) {
 }
 
 describe('EnableBankingBankConnection', () => {
-  it('starts a BoursoBank AIS consent with encoded state', async () => {
+  it('starts an AIS consent with the selected ASPSP and encoded state', async () => {
     const { fetchImpl, calls } = createFetchMock([
       {
         method: 'POST',
@@ -78,13 +78,14 @@ describe('EnableBankingBankConnection', () => {
       userId: 'user-1',
       redirectUri: 'mobile://bank/callback',
       state: 'link-1',
+      aspsp: { name: 'Crédit Agricole', country: 'FR' },
     });
     expect(consent.providerConnectionId).toBe(AUTH_ID);
     expect(consent.authorizationUrl).toContain('auth.enablebanking.com');
     const started = calls[0];
     expect(started?.authorization).toBe('Bearer test-jwt');
     expect(started?.body).toMatchObject({
-      aspsp: { name: ENABLEBANKING_ASPSP_NAME, country: 'FR' },
+      aspsp: { name: 'Crédit Agricole', country: 'FR' },
       psu_type: 'personal',
       language: 'fr',
       redirect_url: `${PUBLIC_API}/bank/enablebanking/return`,
@@ -93,6 +94,28 @@ describe('EnableBankingBankConnection', () => {
     expect((started?.body as { state: string }).state).toBe(
       encodeEnableBankingState({ connectionId: 'link-1' }, 'test-secret-at-least-32-characters!'),
     );
+  });
+
+  it('falls back to configured ASPSP when none is provided', async () => {
+    const { fetchImpl, calls } = createFetchMock([
+      {
+        method: 'POST',
+        path: '/auth',
+        handler: () =>
+          json({
+            url: 'https://auth.enablebanking.com/ais/start?sessionid=auth',
+            authorization_id: AUTH_ID,
+          }),
+      },
+    ]);
+    await bank(fetchImpl).startConsent({
+      userId: 'user-1',
+      redirectUri: 'mobile://bank/callback',
+      state: 'link-1',
+    });
+    expect(calls[0]?.body).toMatchObject({
+      aspsp: { name: ENABLEBANKING_ASPSP_NAME, country: 'FR' },
+    });
   });
 
   it('includes Enable Banking error body when /auth fails', async () => {

@@ -31,9 +31,21 @@ export type FinalizeBankConsentInput = {
   providerConnectionId: string;
 };
 
+export type AspspRef = {
+  name: string;
+  country: string;
+};
+
+export type StartBankConsentInput = {
+  userId: string;
+  redirectUri: string;
+  state: string;
+  aspsp?: AspspRef;
+};
+
 export interface BankConnection {
   readonly provider: BankProvider;
-  startConsent(input: { userId: string; redirectUri: string; state: string }): Promise<BankConsent>;
+  startConsent(input: StartBankConsentInput): Promise<BankConsent>;
   finalizeConsent(input: FinalizeBankConsentInput): Promise<string>;
   ensureConsentForLink(input: {
     providerConnectionId: string;

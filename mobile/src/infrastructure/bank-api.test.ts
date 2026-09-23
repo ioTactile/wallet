@@ -68,6 +68,47 @@ describe('HttpBankApi', () => {
     );
   });
 
+  it('starts with an ASPSP and loads connection options', async () => {
+    process.env.EXPO_PUBLIC_API_URL = 'http://api.test/';
+    const fetchMock = jest.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/bank/connection-options')) {
+        return jsonResponse(200, {
+          provider: 'enablebanking',
+          selectUrl: 'http://api.test/bank/enablebanking/select',
+          country: 'FR',
+        });
+      }
+      return jsonResponse(201, {
+        id: '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
+        authorizationUrl: 'https://auth.enablebanking.com/ais/start',
+      });
+    });
+    global.fetch = fetchMock as typeof fetch;
+    const sessions = new InMemorySessionVault();
+    await sessions.save(SESSION);
+    const api = new HttpBankApi(sessions, {
+      refresh: jest.fn(async () => {
+        throw new Error('unused');
+      }),
+    });
+    await expect(api.connectionOptions()).resolves.toEqual({
+      provider: 'enablebanking',
+      selectUrl: 'http://api.test/bank/enablebanking/select',
+      country: 'FR',
+    });
+    await api.start('mobile://bank/callback', { name: 'CIC', country: 'FR' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/bank/connections',
+      expect.objectContaining({
+        body: JSON.stringify({
+          redirectUri: 'mobile://bank/callback',
+          aspsp: { name: 'CIC', country: 'FR' },
+        }),
+      }),
+    );
+  });
+
   it('completes a connection and returns bank accounts', async () => {
     const bank = makeBankAccount({ lastSyncedAt: '2026-09-20T10:00:00.000Z' });
     const { api } = await setup(jsonResponse(200, { accounts: [bank] }));

@@ -20,6 +20,10 @@ const envSchema = z
     ENABLEBANKING_PRIVATE_KEY: z.string().min(1).optional(),
     ENABLEBANKING_ASPSP_NAME: z.string().min(1).default('Boursorama Banque'),
     ENABLEBANKING_ASPSP_COUNTRY: z.string().min(2).max(2).default('FR'),
+    ENABLEBANKING_WIDGET_SANDBOX: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
   })
   .superRefine((env, ctx) => {
     if (env.BANK_PROVIDER === 'gocardless') {
@@ -78,6 +82,7 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     ENABLEBANKING_PRIVATE_KEY: blankToUndefined(source.ENABLEBANKING_PRIVATE_KEY),
     ENABLEBANKING_ASPSP_NAME: blankToUndefined(source.ENABLEBANKING_ASPSP_NAME),
     ENABLEBANKING_ASPSP_COUNTRY: blankToUndefined(source.ENABLEBANKING_ASPSP_COUNTRY),
+    ENABLEBANKING_WIDGET_SANDBOX: blankToUndefined(source.ENABLEBANKING_WIDGET_SANDBOX),
   });
 }
 
@@ -101,6 +106,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
     GOCARDLESS_INSTITUTION_ID: 'BOURSORAMA_BOUSFRPPXXX',
     ENABLEBANKING_ASPSP_NAME: 'Boursorama Banque',
     ENABLEBANKING_ASPSP_COUNTRY: 'FR',
+    ENABLEBANKING_WIDGET_SANDBOX: false,
     ...overrides,
   };
 }

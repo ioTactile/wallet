@@ -1,3 +1,6 @@
+import type { AspspRef } from '@wallet/shared';
+
+import { AspspRequired } from '../domain/errors.js';
 import { BankLink } from '../domain/bank-link.js';
 import type { BankConnection } from '../domain/bank-connection.js';
 import type { BankLinkRepository, Clock, IdGenerator } from '../domain/ports.js';
@@ -15,12 +18,20 @@ export class StartBankConnection {
     private readonly clock: Clock,
   ) {}
 
-  async execute(userId: string, redirectUri: string): Promise<StartBankConnectionResult> {
+  async execute(
+    userId: string,
+    redirectUri: string,
+    aspsp?: AspspRef,
+  ): Promise<StartBankConnectionResult> {
+    if (this.bank.provider === 'enablebanking' && aspsp == null) {
+      throw new AspspRequired();
+    }
     const id = this.ids.generate();
     const consent = await this.bank.startConsent({
       userId,
       redirectUri,
       state: id,
+      aspsp,
     });
     const link = BankLink.start({
       id,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  aspspRefSchema,
+  bankConnectionOptionsSchema,
   enableBankingReturnQuerySchema,
   gocardlessReturnQuerySchema,
   isAllowedBankRedirectUri,
@@ -30,6 +32,41 @@ describe('bank schemas', () => {
     expect(() =>
       startBankConnectionBodySchema.parse({ redirectUri: 'https://attacker.example/' }),
     ).toThrow();
+  });
+
+  it('accepts an optional ASPSP on start and rejects invalid country codes', () => {
+    expect(
+      startBankConnectionBodySchema.parse({
+        redirectUri: 'mobile://bank/callback',
+        aspsp: { name: '  Boursorama Banque ', country: 'FR' },
+      }),
+    ).toEqual({
+      redirectUri: 'mobile://bank/callback',
+      aspsp: { name: 'Boursorama Banque', country: 'FR' },
+    });
+    expect(() => aspspRefSchema.parse({ name: 'X', country: 'fr' })).toThrow();
+    expect(() => aspspRefSchema.parse({ name: '', country: 'FR' })).toThrow();
+  });
+
+  it('parses bank connection options with or without a select URL', () => {
+    expect(
+      bankConnectionOptionsSchema.parse({
+        provider: 'enablebanking',
+        selectUrl: 'http://127.0.0.1:3000/bank/enablebanking/select',
+        country: 'FR',
+      }),
+    ).toEqual({
+      provider: 'enablebanking',
+      selectUrl: 'http://127.0.0.1:3000/bank/enablebanking/select',
+      country: 'FR',
+    });
+    expect(
+      bankConnectionOptionsSchema.parse({
+        provider: 'sandbox',
+        selectUrl: null,
+        country: 'FR',
+      }),
+    ).toEqual({ provider: 'sandbox', selectUrl: null, country: 'FR' });
   });
 
   it('parses start and sync responses', () => {

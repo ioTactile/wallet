@@ -1,4 +1,4 @@
-import type { Account } from '@wallet/shared';
+import type { Account, AspspRef, BankConnectionOptions } from '@wallet/shared';
 
 import {
   BankApiError,
@@ -11,8 +11,8 @@ import {
 export class StartBankConnection {
   constructor(private readonly bank: BankApi) {}
 
-  execute(redirectUri: string): Promise<StartBankConnectionResult> {
-    return this.bank.start(redirectUri);
+  execute(redirectUri: string, aspsp?: AspspRef): Promise<StartBankConnectionResult> {
+    return this.bank.start(redirectUri, aspsp);
   }
 }
 
@@ -24,15 +24,23 @@ export class CompleteBankConnection {
   }
 }
 
-export class ConnectDemoBank {
+export class GetBankConnectionOptions {
+  constructor(private readonly bank: BankApi) {}
+
+  execute(): Promise<BankConnectionOptions> {
+    return this.bank.connectionOptions();
+  }
+}
+
+export class ConnectBank {
   constructor(
     private readonly bank: BankApi,
     private readonly session: BankAuthSession,
   ) {}
 
-  async execute(): Promise<Account[]> {
+  async execute(aspsp?: AspspRef): Promise<Account[]> {
     const redirectUri = this.session.redirectUri();
-    const started = await this.bank.start(redirectUri);
+    const started = await this.bank.start(redirectUri, aspsp);
     const result = await this.session.open(started.authorizationUrl, redirectUri);
     if (result !== 'success') {
       throw new BankApiError('cancelled');
@@ -40,7 +48,6 @@ export class ConnectDemoBank {
     return this.bank.complete(started.id);
   }
 }
-
 export class SyncBankAccount {
   constructor(private readonly bank: BankApi) {}
 

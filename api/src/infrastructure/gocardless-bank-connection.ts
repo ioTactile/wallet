@@ -73,11 +73,13 @@ export class GoCardlessBankConnection implements BankConnection {
     userId: string;
     redirectUri: string;
     state: string;
+    aspsp?: { name: string; country: string };
   }): Promise<BankConsent> {
     if (input.userId.trim().length === 0) {
       throw new Error('GoCardless consent requires a wallet user id');
     }
     void input.redirectUri;
+    void input.aspsp;
     const agreement = await this.request<AgreementResponse>('/api/v2/agreements/enduser/', {
       method: 'POST',
       body: {

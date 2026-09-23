@@ -1,5 +1,7 @@
 import type {
   Account,
+  AspspRef,
+  BankConnectionOptions,
   CreateAccountBody,
   CreateRecordBody,
   Record as WalletRecord,
@@ -96,7 +98,8 @@ export type SyncBankAccountResult = {
 };
 
 export interface BankApi {
-  start(redirectUri: string): Promise<StartBankConnectionResult>;
+  connectionOptions(): Promise<BankConnectionOptions>;
+  start(redirectUri: string, aspsp?: AspspRef): Promise<StartBankConnectionResult>;
   complete(connectionId: string): Promise<Account[]>;
   sync(accountId: string): Promise<SyncBankAccountResult>;
   disconnect(accountId: string): Promise<Account>;

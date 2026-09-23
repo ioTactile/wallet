@@ -8,7 +8,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { notifyBankAuthFromWindow } from '@/infrastructure/expo-bank-auth-session';
 import { accountErrorKey, bankCallbackConnectionId } from '@/screens/accounts/accounts-view-model';
-import { useCompleteBankConnection } from '@/screens/accounts/use-account-queries';
+import { useCompleteBankConnection } from '@/screens/accounts/use-bank-queries';
 
 export function BankCallbackScreen() {
   const { t } = useTranslation();
