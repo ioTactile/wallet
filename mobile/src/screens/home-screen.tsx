@@ -111,7 +111,7 @@ export function HomeScreen() {
           onOpenRecords={() => router.push(recordsListHref())}
         />
         <ExpensesStructureCard
-          key={`${expensePeriod}:${expenseFilter}`}
+          key={`expenses:${expensePeriod}:${expenseFilter}`}
           status={expensesStatus}
           records={expensesQuery.data?.records ?? []}
           previousRecords={previousExpensesQuery.data?.records ?? []}
@@ -133,7 +133,7 @@ export function HomeScreen() {
           onRecordPress={(id) => router.push(recordDetailHref(id, { from: 'home' }))}
         />
         <BalanceTrendCard
-          key={`${balancePeriod}:${balanceFilter}`}
+          key={`balance:${balancePeriod}:${balanceFilter}`}
           status={balanceStatus}
           records={balanceQuery.data?.records ?? []}
           accounts={query.data ?? []}
