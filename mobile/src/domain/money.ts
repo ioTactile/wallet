@@ -20,6 +20,14 @@ export function formatMoney(cents: number): string {
   return `${sign}${euros},${String(remainder).padStart(2, '0')} €`;
 }
 
+export function formatCompactMoney(cents: number, locale: string): string {
+  assertIntegerCents(cents);
+  return new Intl.NumberFormat(locale, {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(Math.trunc(cents) / 100);
+}
+
 const EURO_INPUT = /^-?(\d+)(?:[.,](\d{0,2}))?$/;
 
 export function parseEurosToCents(raw: string): number | null {

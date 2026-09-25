@@ -1,14 +1,17 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { CreateRecord, DeleteRecord, GetRecord, ListRecords, UpdateRecord } from './records';
+import { InMemoryClock, InMemoryIdGenerator, InMemoryWriteQueue } from './write-queue';
 import { InMemoryRecordRepository, makeExpenseRecord } from './fakes';
 
 function useCases(repo = new InMemoryRecordRepository()) {
+  const queue = new InMemoryWriteQueue();
   return {
     repo,
+    queue,
     list: new ListRecords(repo),
     get: new GetRecord(repo),
-    create: new CreateRecord(repo),
+    create: new CreateRecord(repo, queue, new InMemoryIdGenerator(), new InMemoryClock()),
     update: new UpdateRecord(repo),
     remove: new DeleteRecord(repo),
   };

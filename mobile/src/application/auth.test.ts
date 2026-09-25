@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { AuthApiError } from '@/domain/ports';
+import { AuthApiError } from '@/domain/errors';
 import { PinMismatch, WrongPin } from '@/domain/pin';
 
 import { LoginAccount, LogoutAccount, RegisterAccount, UpdateAccountProfile } from './authenticate';

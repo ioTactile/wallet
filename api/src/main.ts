@@ -25,6 +25,7 @@ import { SyncBankAccount } from './application/sync-bank-account.js';
 import { UpdateAccount } from './application/update-account.js';
 import { UpdateProfile } from './application/update-profile.js';
 import { UpdateRecord } from './application/update-record.js';
+import { RunIdempotent } from './application/run-idempotent.js';
 import { createServer, registerApi } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createBankConnection } from './infrastructure/create-bank-connection.js';
@@ -32,6 +33,7 @@ import { FastifyJwtTokenIssuer } from './infrastructure/http/fastify-jwt-token-i
 import { applyAuthSchema } from './infrastructure/persistence/apply-schema.js';
 import { DrizzleAccountRepository } from './infrastructure/persistence/drizzle-account-repository.js';
 import { DrizzleBankLinkRepository } from './infrastructure/persistence/drizzle-bank-link-repository.js';
+import { DrizzleIdempotencyStore } from './infrastructure/persistence/drizzle-idempotency-store.js';
 import { DrizzleRecordRepository } from './infrastructure/persistence/drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './infrastructure/persistence/drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './infrastructure/persistence/drizzle-user-repository.js';
@@ -55,12 +57,14 @@ async function main() {
   const accounts = new DrizzleAccountRepository(db);
   const records = new DrizzleRecordRepository(db);
   const links = new DrizzleBankLinkRepository(db);
+  const idempotency = new DrizzleIdempotencyStore(db);
   const hasher = new Argon2Hasher();
   const clock = new SystemClock();
   const ids = new CryptoIdGenerator();
   const bank = createBankConnection(env);
   const ensureDefaultCash = new EnsureDefaultCashAccount(accounts, ids, clock);
   const syncBankAccount = new SyncBankAccount(accounts, records, links, bank, ids, clock);
+  const runIdempotent = new RunIdempotent(idempotency, clock);
 
   const app = await createServer(env);
   const tokens = new FastifyJwtTokenIssuer(
@@ -97,6 +101,7 @@ async function main() {
     createRecord: new CreateRecord(records, accounts, ids, clock),
     updateRecord: new UpdateRecord(records, accounts, clock),
     deleteRecord: new DeleteRecord(records),
+    runIdempotent,
     startBankConnection: new StartBankConnection(links, bank, ids, clock),
     completeBankConnection: new CompleteBankConnection(
       links,
@@ -110,7 +115,7 @@ async function main() {
     syncBankAccount,
     disconnectBankAccount: new DisconnectBankAccount(accounts, links, bank, clock),
     getBankLinkRedirect: new GetBankLinkRedirect(links),
-    getBankConnectionOptions: new GetBankConnectionOptions(bank, env),
+    getBankConnectionOptions: new GetBankConnectionOptions(bank, env.PUBLIC_API_URL),
   });
 
   await app.listen({ port: env.PORT, host: '0.0.0.0' });

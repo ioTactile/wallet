@@ -46,7 +46,7 @@ describe('accounts HTTP', () => {
     const posted = await app.inject({
       method: 'POST',
       url: '/accounts',
-      headers: auth,
+      headers: { ...auth, 'idempotency-key': 'acc-cash-1' },
       payload: { kind: 'cash', name: 'Coffre' },
     });
     expect(posted.statusCode).toBe(201);

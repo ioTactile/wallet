@@ -10,15 +10,9 @@ import {
   type BankConnectionOptions,
 } from '@wallet/shared';
 
-import {
-  AuthApiError,
-  BankApiError,
-  type AuthApi,
-  type BankApi,
-  type SessionVault,
-  type StartBankConnectionResult,
-  type SyncBankAccountResult,
-} from '@/domain/ports';
+import { AuthApiError, BankApiError } from '@/domain/errors';
+import type { StartBankConnectionResult, SyncBankAccountResult } from '@/domain/bank';
+import type { AuthApi, BankApi, SessionVault } from '@/domain/ports';
 
 function baseUrl() {
   const url = process.env.EXPO_PUBLIC_API_URL;

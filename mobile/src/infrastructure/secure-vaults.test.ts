@@ -1,27 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 
-import type { SecretStore } from './secret-store';
+import { MemorySecretStore } from './memory-secret-store';
 import { SecurePinVault, SecureSessionVault } from './secure-vaults';
-
-class MemorySecrets implements SecretStore {
-  private readonly values = new Map<string, string>();
-
-  async getItem(key: string) {
-    return this.values.get(key) ?? null;
-  }
-
-  async setItem(key: string, value: string) {
-    this.values.set(key, value);
-  }
-
-  async deleteItem(key: string) {
-    this.values.delete(key);
-  }
-}
 
 describe('SecurePinVault', () => {
   it('round-trips a PIN record as JSON', async () => {
-    const vault = new SecurePinVault(new MemorySecrets());
+    const vault = new SecurePinVault(new MemorySecretStore());
     await vault.save({ salt: 's', hash: 'h' });
     await expect(vault.get()).resolves.toEqual({ salt: 's', hash: 'h' });
   });
@@ -29,7 +13,7 @@ describe('SecurePinVault', () => {
 
 describe('SecureSessionVault', () => {
   it('saves, reads, and clears a session', async () => {
-    const vault = new SecureSessionVault(new MemorySecrets());
+    const vault = new SecureSessionVault(new MemorySecretStore());
     const session = {
       user: {
         id: '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
@@ -47,7 +31,7 @@ describe('SecureSessionVault', () => {
   });
 
   it('defaults missing profile names from an older vault payload', async () => {
-    const secrets = new MemorySecrets();
+    const secrets = new MemorySecretStore();
     await secrets.setItem(
       'wallet.session',
       JSON.stringify({

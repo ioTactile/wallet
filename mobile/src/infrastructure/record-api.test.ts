@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
-import { AuthApiError, RecordApiError } from '@/domain/ports';
+import { AuthApiError, RecordApiError } from '@/domain/errors';
 import { InMemorySessionVault, makeExpenseRecord } from '@/application/fakes';
 
 import { HttpRecordApi } from './record-api';
@@ -68,14 +68,24 @@ describe('HttpRecordApi', () => {
   });
 
   it('creates an expense and maps API errors', async () => {
-    const { api } = await setup(jsonResponse(400, { error: 'manual_record_on_bank' }));
+    const { api, fetchMock } = await setup(jsonResponse(400, { error: 'manual_record_on_bank' }));
     await expect(
-      api.create({
-        kind: 'expense',
-        accountId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-        categoryId: 'food_drinks',
-        amountCents: 100,
-      }),
+      api.create(
+        {
+          kind: 'expense',
+          accountId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          categoryId: 'food_drinks',
+          amountCents: 100,
+        },
+        'idem-key-1',
+      ),
     ).rejects.toBeInstanceOf(RecordApiError);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/records',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'Idempotency-Key': 'idem-key-1' }),
+      }),
+    );
   });
 });

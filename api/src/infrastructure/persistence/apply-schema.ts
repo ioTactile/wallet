@@ -118,4 +118,18 @@ export async function applyAuthSchema(db: AppDatabase): Promise<void> {
       ON records (account_id, external_id)
       WHERE external_id IS NOT NULL
   `);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS idempotency_keys (
+      user_id uuid NOT NULL REFERENCES users(id),
+      key text NOT NULL,
+      method text NOT NULL,
+      path text NOT NULL,
+      request_hash text NOT NULL,
+      status text NOT NULL,
+      response_status integer,
+      response_body text,
+      created_at timestamptz NOT NULL,
+      PRIMARY KEY (user_id, key)
+    )
+  `);
 }

@@ -1,5 +1,5 @@
 import type { AuthApi, SessionVault } from '@/domain/ports';
-import { AuthApiError } from '@/domain/ports';
+import { AuthApiError } from '@/domain/errors';
 import type { Session } from '@/domain/session';
 
 export class RegisterAccount {

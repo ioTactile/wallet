@@ -40,7 +40,7 @@ export async function createServer(env: Env): Promise<FastifyInstance> {
   await app.register(cors, {
     origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key'],
   });
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,

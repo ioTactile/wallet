@@ -11,6 +11,7 @@ import { LedgerRecord } from '../../domain/record.js';
 import { applyAuthSchema } from './apply-schema.js';
 import { DrizzleAccountRepository } from './drizzle-account-repository.js';
 import { DrizzleBankLinkRepository } from './drizzle-bank-link-repository.js';
+import { DrizzleIdempotencyStore } from './drizzle-idempotency-store.js';
 import { DrizzleRecordRepository } from './drizzle-record-repository.js';
 import { DrizzleRefreshTokenRepository } from './drizzle-refresh-token-repository.js';
 import { DrizzleUserRepository } from './drizzle-user-repository.js';
@@ -283,5 +284,48 @@ describe('drizzle repositories (pglite)', () => {
     );
     await records.save(confirmed);
     expect((await records.getById(ais.id))?.categoryConfirmed).toBe(true);
+  });
+
+  it('claims, completes and replays an idempotency key', async () => {
+    client = new PGlite();
+    const db = drizzle(client, { schema });
+    await applyAuthSchema(db);
+    const users = new DrizzleUserRepository(db);
+    const store = new DrizzleIdempotencyStore(db);
+
+    const user = new User(
+      '3b8d1f2a-6c5e-4d0b-9f11-2a4c6e8b0d12',
+      Email.parse('jordan@example.com'),
+      'hashed:secret',
+      new Date('2026-09-19T20:00:00.000Z'),
+    );
+    await users.save(user);
+
+    const now = new Date('2026-09-20T10:00:00.000Z');
+    const claimed = await store.claim({
+      userId: user.id,
+      key: 'key-1',
+      method: 'POST',
+      path: '/records',
+      requestHash: 'hash-a',
+      now,
+      reclaimAfterMs: 120_000,
+    });
+    expect(claimed).toEqual({ type: 'claimed' });
+
+    await store.complete(user.id, 'key-1', 201, JSON.stringify({ id: 'rec-1' }));
+    const replay = await store.claim({
+      userId: user.id,
+      key: 'key-1',
+      method: 'POST',
+      path: '/records',
+      requestHash: 'hash-a',
+      now,
+      reclaimAfterMs: 120_000,
+    });
+    expect(replay.type).toBe('replay');
+    if (replay.type === 'replay') {
+      expect(replay.entry.responseBody).toBe(JSON.stringify({ id: 'rec-1' }));
+    }
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
 
-import { AccountApiError, AuthApiError } from '@/domain/ports';
+import { AccountApiError, AuthApiError } from '@/domain/errors';
 
 import { InMemorySessionVault, makeBankAccount, makeCashAccount } from '@/application/fakes';
 
@@ -92,18 +92,22 @@ describe('HttpAccountApi', () => {
     const created = makeCashAccount({ name: 'Coffre' });
     const { api, fetchMock } = await setup(jsonResponse(201, created));
     await expect(
-      api.create({
-        kind: 'cash',
-        name: 'Coffre',
-        currency: 'EUR',
-        color: DEFAULT_ACCOUNT_COLOR,
-        excludeFromStats: false,
-      }),
+      api.create(
+        {
+          kind: 'cash',
+          name: 'Coffre',
+          currency: 'EUR',
+          color: DEFAULT_ACCOUNT_COLOR,
+          excludeFromStats: false,
+        },
+        'idem-acc-1',
+      ),
     ).resolves.toEqual(created);
     expect(fetchMock).toHaveBeenCalledWith(
       'http://api.test/accounts',
       expect.objectContaining({
         method: 'POST',
+        headers: expect.objectContaining({ 'Idempotency-Key': 'idem-acc-1' }),
         body: JSON.stringify({
           kind: 'cash',
           name: 'Coffre',

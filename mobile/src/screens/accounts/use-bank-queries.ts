@@ -2,9 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AspspRef } from '@wallet/shared';
 
 import { bankUseCases } from '@/application/use-cases';
-import { accountQueryKeys } from '@/infrastructure/account-query-keys';
-import { bankQueryKeys } from '@/infrastructure/bank-query-keys';
-import { recordQueryKeys } from '@/infrastructure/record-query-keys';
+import { accountQueryKeys } from '@/screens/accounts/account-query-keys';
+import { bankQueryKeys } from '@/screens/accounts/bank-query-keys';
+import { recordQueryKeys } from '@/screens/records/record-query-keys';
 
 export function useBankConnectionOptions() {
   return useQuery({

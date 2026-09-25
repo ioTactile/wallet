@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
 
-import { AccountApiError } from '@/domain/ports';
+import { AccountApiError } from '@/domain/errors';
 
 import {
   ArchiveAccount,
@@ -12,13 +12,15 @@ import {
   UpdateAccount,
 } from './accounts';
 import { InMemoryAccountRepository, makeBankAccount, makeCashAccount } from './fakes';
+import { InMemoryClock, InMemoryIdGenerator, InMemoryWriteQueue } from './write-queue';
 
 function useCases(repo = new InMemoryAccountRepository()) {
+  const queue = new InMemoryWriteQueue();
   return {
     repo,
     list: new ListAccounts(repo),
     get: new GetAccount(repo),
-    createCash: new CreateCashAccount(repo),
+    createCash: new CreateCashAccount(repo, queue, new InMemoryIdGenerator(), new InMemoryClock()),
     update: new UpdateAccount(repo),
     archive: new ArchiveAccount(repo),
     delete: new DeleteAccount(repo),

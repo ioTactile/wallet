@@ -1,4 +1,4 @@
-import { FakeBankConnection } from '../application/fake-bank-connection.js';
+import { FakeBankConnection } from './fake-bank-connection.js';
 import type { Env } from '../config/env.js';
 import type { BankConnection } from '../domain/bank-connection.js';
 import { EnableBankingBankConnection } from './enablebanking-bank-connection.js';

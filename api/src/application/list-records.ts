@@ -1,15 +1,15 @@
-import type { ListRecordsQuery, RecordsResponse } from '@wallet/shared';
+import type { ListRecordsQuery } from '@wallet/shared';
 
 import { CannotDeleteAisRecord, RecordNotFound } from '../domain/errors.js';
+import { summarizeLedgerRecords, type ListedRecords } from '../domain/ledger-summary.js';
 import type { RecordRepository } from '../domain/ports.js';
-import { mapRecord, summarizeRecords } from './map-record.js';
 
 export class ListRecords {
   constructor(private readonly records: RecordRepository) {}
 
-  async execute(userId: string, query: ListRecordsQuery): Promise<RecordsResponse> {
-    const mapped = (await this.records.listByUser(userId)).map(mapRecord);
-    return summarizeRecords(mapped, query.from, query.to, query.accountIds);
+  async execute(userId: string, query: ListRecordsQuery): Promise<ListedRecords> {
+    const all = await this.records.listByUser(userId);
+    return summarizeLedgerRecords(all, new Date(query.from), new Date(query.to), query.accountIds);
   }
 }
 

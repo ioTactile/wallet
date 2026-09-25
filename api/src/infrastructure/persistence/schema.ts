@@ -112,3 +112,21 @@ export const records = pgTable(
       .where(sql`${table.externalId} is not null`),
   ],
 );
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    key: text('key').notNull(),
+    method: text('method').notNull(),
+    path: text('path').notNull(),
+    requestHash: text('request_hash').notNull(),
+    status: text('status').notNull(),
+    responseStatus: integer('response_status'),
+    responseBody: text('response_body'),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [uniqueIndex('idempotency_keys_user_key_uidx').on(table.userId, table.key)],
+);

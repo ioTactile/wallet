@@ -5,7 +5,10 @@ import type {
   UpdateRecordBody,
 } from '@wallet/shared';
 
-import type { ListRecordsOptions, RecordRepository } from '@/domain/ports';
+import type { ListRecordsOptions } from '@/domain/list-options';
+import type { Clock, IdGenerator, RecordRepository, WriteQueue } from '@/domain/ports';
+
+import { shouldKeepQueuedWrite } from './write-queue';
 
 export class ListRecords {
   constructor(private readonly records: RecordRepository) {}
@@ -24,10 +27,33 @@ export class GetRecord {
 }
 
 export class CreateRecord {
-  constructor(private readonly records: RecordRepository) {}
+  constructor(
+    private readonly records: RecordRepository,
+    private readonly queue: WriteQueue,
+    private readonly ids: IdGenerator,
+    private readonly clock: Clock,
+  ) {}
 
-  execute(body: CreateRecordBody): Promise<WalletRecord> {
-    return this.records.create(body);
+  async execute(body: CreateRecordBody): Promise<WalletRecord> {
+    const idempotencyKey = this.ids.generate();
+    const pendingId = this.ids.generate();
+    await this.queue.enqueue({
+      id: pendingId,
+      kind: 'create_record',
+      body,
+      idempotencyKey,
+      enqueuedAt: this.clock.nowIso(),
+    });
+    try {
+      const created = await this.records.create(body, idempotencyKey);
+      await this.queue.remove(pendingId);
+      return created;
+    } catch (error) {
+      if (!shouldKeepQueuedWrite(error)) {
+        await this.queue.remove(pendingId);
+      }
+      throw error;
+    }
   }
 }
 

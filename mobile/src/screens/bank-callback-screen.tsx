@@ -6,7 +6,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from '
 import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
-import { notifyBankAuthFromWindow } from '@/infrastructure/expo-bank-auth-session';
+import { bankUseCases } from '@/application/use-cases';
 import { accountErrorKey, bankCallbackConnectionId } from '@/screens/accounts/accounts-view-model';
 import { useCompleteBankConnection } from '@/screens/accounts/use-bank-queries';
 
@@ -41,7 +41,7 @@ export function BankCallbackScreen() {
 
   useEffect(() => {
     if (handedOff) {
-      notifyBankAuthFromWindow();
+      bankUseCases.notifyAuthFromWindow.execute();
       return;
     }
     if (!unlocked || session == null || connectionId == null) {

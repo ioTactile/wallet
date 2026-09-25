@@ -7,11 +7,11 @@ import { WebView } from 'react-native-webview';
 
 import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
-import { BankApiError } from '@/domain/ports';
-import { parseAspspWidgetMessage } from '@/infrastructure/aspsp-widget-message';
-import { dismissWebBankAuth } from '@/infrastructure/expo-bank-auth-session';
+import { parseAspspWidgetMessage } from '@/domain/aspsp-widget-message';
+import { BankApiError } from '@/domain/errors';
 import { accountErrorKey } from '@/screens/accounts/accounts-view-model';
 import { useBankConnectionOptions, useConnectBank } from '@/screens/accounts/use-bank-queries';
+import { bankUseCases } from '@/application/use-cases';
 
 export function ConnectBankScreen() {
   const { t } = useTranslation();
@@ -24,7 +24,7 @@ export function ConnectBankScreen() {
   const optionsQuery = useBankConnectionOptions();
 
   const onLeave = useCallback(() => {
-    dismissWebBankAuth();
+    bankUseCases.dismissAuth.execute();
     router.back();
   }, [router]);
 

@@ -7,9 +7,9 @@ import type {
 } from '@wallet/shared';
 
 import { recordUseCases } from '@/application/use-cases';
-import type { ListRecordsOptions } from '@/domain/ports';
-import { accountQueryKeys } from '@/infrastructure/account-query-keys';
-import { recordQueryKeys } from '@/infrastructure/record-query-keys';
+import type { ListRecordsOptions } from '@/domain/list-options';
+import { accountQueryKeys } from '@/screens/accounts/account-query-keys';
+import { recordQueryKeys } from '@/screens/records/record-query-keys';
 
 export function useRecordList(options: ListRecordsOptions) {
   return useQuery({

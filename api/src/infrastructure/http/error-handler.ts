@@ -24,6 +24,10 @@ const STATUS_BY_CODE: Record<string, number> = {
   cannot_mutate_ais_record: 400,
   cannot_delete_ais_record: 409,
   cannot_disconnect_account: 400,
+  missing_idempotency_key: 400,
+  invalid_idempotency_key: 400,
+  idempotency_key_conflict: 409,
+  idempotency_in_progress: 409,
 };
 
 export function mapError(error: unknown): { status: number; body: { error: string } } {

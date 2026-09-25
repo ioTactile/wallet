@@ -1,6 +1,9 @@
 import type { Account, CreateAccountBody, UpdateAccountBody } from '@wallet/shared';
 
-import type { AccountRepository, ListAccountsOptions } from '@/domain/ports';
+import type { ListAccountsOptions } from '@/domain/list-options';
+import type { AccountRepository, Clock, IdGenerator, WriteQueue } from '@/domain/ports';
+
+import { shouldKeepQueuedWrite } from './write-queue';
 
 export class ListAccounts {
   constructor(private readonly accounts: AccountRepository) {}
@@ -19,10 +22,36 @@ export class GetAccount {
 }
 
 export class CreateCashAccount {
-  constructor(private readonly accounts: AccountRepository) {}
+  constructor(
+    private readonly accounts: AccountRepository,
+    private readonly queue: WriteQueue,
+    private readonly ids: IdGenerator,
+    private readonly clock: Clock,
+  ) {}
 
-  execute(input: Omit<Extract<CreateAccountBody, { kind: 'cash' }>, 'kind'>): Promise<Account> {
-    return this.accounts.create({ ...input, kind: 'cash' });
+  async execute(
+    input: Omit<Extract<CreateAccountBody, { kind: 'cash' }>, 'kind'>,
+  ): Promise<Account> {
+    const body: CreateAccountBody = { ...input, kind: 'cash' };
+    const idempotencyKey = this.ids.generate();
+    const pendingId = this.ids.generate();
+    await this.queue.enqueue({
+      id: pendingId,
+      kind: 'create_account',
+      body,
+      idempotencyKey,
+      enqueuedAt: this.clock.nowIso(),
+    });
+    try {
+      const created = await this.accounts.create(body, idempotencyKey);
+      await this.queue.remove(pendingId);
+      return created;
+    } catch (error) {
+      if (!shouldKeepQueuedWrite(error)) {
+        await this.queue.remove(pendingId);
+      }
+      throw error;
+    }
   }
 }
 

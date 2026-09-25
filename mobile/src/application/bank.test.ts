@@ -2,13 +2,15 @@ import { describe, expect, it } from '@jest/globals';
 
 import type { AspspRef, BankConnectionOptions } from '@wallet/shared';
 
-import { BankApiError, type BankApi, type BankAuthSession } from '@/domain/ports';
+import type { BankApi, BankAuthSession } from '@/domain/ports';
 
 import {
   CompleteBankConnection,
   ConnectBank,
   DisconnectBankAccount,
+  DismissBankAuth,
   GetBankConnectionOptions,
+  NotifyBankAuthFromWindow,
   StartBankConnection,
   SyncBankAccount,
 } from './bank';
@@ -59,6 +61,8 @@ class InMemoryBankApi implements BankApi {
 
 class ImmediateAuthSession implements BankAuthSession {
   result: 'success' | 'cancel' = 'success';
+  dismissed = false;
+  notified = false;
 
   redirectUri() {
     return 'mobile://bank/callback';
@@ -66,6 +70,15 @@ class ImmediateAuthSession implements BankAuthSession {
 
   async open() {
     return this.result;
+  }
+
+  dismissPending() {
+    this.dismissed = true;
+  }
+
+  notifyFromCallbackWindow() {
+    this.notified = true;
+    return true;
   }
 }
 
@@ -122,11 +135,11 @@ describe('bank use cases', () => {
     expect(disconnected.archivedAt).toBeTruthy();
   });
 
-  it('propagates network failures from start', async () => {
-    const api = new InMemoryBankApi();
-    api.failStart = new BankApiError('network_error');
-    await expect(new ConnectBank(api, new ImmediateAuthSession()).execute()).rejects.toMatchObject({
-      code: 'network_error',
-    });
+  it('dismisses and notifies through the auth session port', () => {
+    const session = new ImmediateAuthSession();
+    new DismissBankAuth(session).execute();
+    expect(session.dismissed).toBe(true);
+    expect(new NotifyBankAuthFromWindow(session).execute()).toBe(true);
+    expect(session.notified).toBe(true);
   });
 });

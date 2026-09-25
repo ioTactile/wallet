@@ -8,12 +8,18 @@ import type {
   BankLinkRepository,
   Clock,
   Hasher,
+  IdempotencyStore,
   IdGenerator,
   RecordRepository,
   RefreshTokenRepository,
   TokenIssuer,
   UserRepository,
 } from '../domain/ports.js';
+import type {
+  IdempotencyClaimCommand,
+  IdempotencyClaimResult,
+  IdempotencyRecord,
+} from '../domain/idempotency.js';
 import type { LedgerRecord } from '../domain/record.js';
 import type { IssuedRefresh, RefreshToken } from '../domain/refresh-token.js';
 import type { User } from '../domain/user.js';
@@ -193,5 +199,73 @@ export class FakeTokenIssuer implements TokenIssuer {
 
   hashRefresh(raw: string): string {
     return createHash('sha256').update(raw).digest('hex');
+  }
+}
+
+export class InMemoryIdempotencyStore implements IdempotencyStore {
+  private readonly entries = new Map<string, IdempotencyRecord>();
+
+  private scope(userId: string, key: string): string {
+    return `${userId}:${key}`;
+  }
+
+  async claim(input: IdempotencyClaimCommand): Promise<IdempotencyClaimResult> {
+    const id = this.scope(input.userId, input.key);
+    const existing = this.entries.get(id);
+    if (!existing) {
+      this.entries.set(id, {
+        userId: input.userId,
+        key: input.key,
+        method: input.method,
+        path: input.path,
+        requestHash: input.requestHash,
+        status: 'processing',
+        responseStatus: null,
+        responseBody: null,
+        createdAt: input.now,
+      });
+      return { type: 'claimed' };
+    }
+    if (existing.requestHash !== input.requestHash) {
+      return { type: 'conflict_body' };
+    }
+    if (existing.status === 'completed') {
+      return { type: 'replay', entry: existing };
+    }
+    const age = input.now.getTime() - existing.createdAt.getTime();
+    if (age >= input.reclaimAfterMs) {
+      this.entries.set(id, {
+        ...existing,
+        status: 'processing',
+        responseStatus: null,
+        responseBody: null,
+        createdAt: input.now,
+      });
+      return { type: 'claimed' };
+    }
+    return { type: 'in_progress' };
+  }
+
+  async complete(
+    userId: string,
+    key: string,
+    responseStatus: number,
+    responseBody: string,
+  ): Promise<void> {
+    const id = this.scope(userId, key);
+    const existing = this.entries.get(id);
+    if (!existing || existing.status !== 'processing') {
+      return;
+    }
+    this.entries.set(id, {
+      ...existing,
+      status: 'completed',
+      responseStatus,
+      responseBody,
+    });
+  }
+
+  async abandon(userId: string, key: string): Promise<void> {
+    this.entries.delete(this.scope(userId, key));
   }
 }

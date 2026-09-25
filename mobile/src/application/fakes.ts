@@ -10,17 +10,16 @@ import {
   type UpdateRecordBody,
 } from '@wallet/shared';
 
+import type { ListAccountsOptions, ListRecordsOptions } from '@/domain/list-options';
 import type {
   AccountRepository,
   AuthApi,
-  ListAccountsOptions,
-  ListRecordsOptions,
   PinHasher,
   PinVault,
   RecordRepository,
   SessionVault,
 } from '@/domain/ports';
-import { AccountApiError, AuthApiError, RecordApiError } from '@/domain/ports';
+import { AccountApiError, AuthApiError, RecordApiError } from '@/domain/errors';
 import type { PinRecord, Session } from '@/domain/session';
 
 export const FAKE_NOW = '2026-09-20T10:00:00.000Z';
@@ -79,6 +78,8 @@ export function makeBankAccount(
 
 export class InMemoryAccountRepository implements AccountRepository {
   accounts: Account[] = [];
+  createError: Error | null = null;
+  lastCreateKey: string | null = null;
   private seq = 0;
 
   async list(options?: ListAccountsOptions): Promise<Account[]> {
@@ -96,7 +97,11 @@ export class InMemoryAccountRepository implements AccountRepository {
     return found;
   }
 
-  async create(body: CreateAccountBody): Promise<Account> {
+  async create(body: CreateAccountBody, idempotencyKey: string): Promise<Account> {
+    this.lastCreateKey = idempotencyKey;
+    if (this.createError) {
+      throw this.createError;
+    }
     this.seq += 1;
     const base = {
       id: nextUuid(this.seq),
@@ -235,6 +240,8 @@ export function makeTransferRecord(
 
 export class InMemoryRecordRepository implements RecordRepository {
   records: WalletRecord[] = [];
+  createError: Error | null = null;
+  lastCreateKey: string | null = null;
   private seq = 10;
 
   async list(options: ListRecordsOptions): Promise<RecordsResponse> {
@@ -260,7 +267,11 @@ export class InMemoryRecordRepository implements RecordRepository {
     return found;
   }
 
-  async create(body: CreateRecordBody): Promise<WalletRecord> {
+  async create(body: CreateRecordBody, idempotencyKey: string): Promise<WalletRecord> {
+    this.lastCreateKey = idempotencyKey;
+    if (this.createError) {
+      throw this.createError;
+    }
     this.seq += 1;
     const base = {
       id: nextUuid(this.seq),

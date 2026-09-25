@@ -1,6 +1,7 @@
 import type { Account } from './account.js';
 import type { BankLink } from './bank-link.js';
 import type { Email } from './email.js';
+import type { IdempotencyClaimCommand, IdempotencyClaimResult } from './idempotency.js';
 import type { LedgerRecord } from './record.js';
 import type { IssuedRefresh, RefreshToken } from './refresh-token.js';
 import type { User } from './user.js';
@@ -57,4 +58,15 @@ export interface TokenIssuer {
   issueAccess(userId: string): string;
   issueRefresh(): IssuedRefresh;
   hashRefresh(raw: string): string;
+}
+
+export interface IdempotencyStore {
+  claim(input: IdempotencyClaimCommand): Promise<IdempotencyClaimResult>;
+  complete(
+    userId: string,
+    key: string,
+    responseStatus: number,
+    responseBody: string,
+  ): Promise<void>;
+  abandon(userId: string, key: string): Promise<void>;
 }

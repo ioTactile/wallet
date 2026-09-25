@@ -142,3 +142,30 @@ export class AspspRequired extends DomainError {
     super('aspsp_required', 'ASPSP selection is required for Enable Banking');
   }
 }
+
+export class MissingIdempotencyKey extends DomainError {
+  constructor() {
+    super('missing_idempotency_key', 'Idempotency-Key header is required');
+  }
+}
+
+export class InvalidIdempotencyKey extends DomainError {
+  constructor() {
+    super('invalid_idempotency_key', 'Idempotency-Key is invalid');
+  }
+}
+
+export class IdempotencyKeyConflict extends DomainError {
+  constructor() {
+    super(
+      'idempotency_key_conflict',
+      'Idempotency-Key was already used with a different request body',
+    );
+  }
+}
+
+export class IdempotencyInProgress extends DomainError {
+  constructor() {
+    super('idempotency_in_progress', 'A request with this Idempotency-Key is still processing');
+  }
+}

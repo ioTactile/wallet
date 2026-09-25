@@ -1,12 +1,8 @@
 import type { Account, AspspRef, BankConnectionOptions } from '@wallet/shared';
 
-import {
-  BankApiError,
-  type BankApi,
-  type BankAuthSession,
-  type StartBankConnectionResult,
-  type SyncBankAccountResult,
-} from '@/domain/ports';
+import { BankApiError } from '@/domain/errors';
+import type { StartBankConnectionResult, SyncBankAccountResult } from '@/domain/bank';
+import type { BankApi, BankAuthSession } from '@/domain/ports';
 
 export class StartBankConnection {
   constructor(private readonly bank: BankApi) {}
@@ -61,5 +57,21 @@ export class DisconnectBankAccount {
 
   execute(accountId: string): Promise<Account> {
     return this.bank.disconnect(accountId);
+  }
+}
+
+export class DismissBankAuth {
+  constructor(private readonly session: BankAuthSession) {}
+
+  execute(): void {
+    this.session.dismissPending();
+  }
+}
+
+export class NotifyBankAuthFromWindow {
+  constructor(private readonly session: BankAuthSession) {}
+
+  execute(): boolean {
+    return this.session.notifyFromCallbackWindow();
   }
 }

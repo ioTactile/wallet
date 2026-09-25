@@ -10,6 +10,9 @@ import type {
   UpdateRecordBody,
 } from '@wallet/shared';
 
+import type { StartBankConnectionResult, SyncBankAccountResult } from './bank';
+import type { ListAccountsOptions, ListRecordsOptions } from './list-options';
+import type { PendingWrite } from './pending-write';
 import type { PinRecord, Session } from './session';
 
 export interface PinVault {
@@ -40,62 +43,36 @@ export interface AuthApi {
   ): Promise<Session['user']>;
 }
 
-export class AuthApiError extends Error {
-  constructor(readonly code: string) {
-    super(code);
-    this.name = 'AuthApiError';
-  }
+export interface RecordRepository {
+  list(options: ListRecordsOptions): Promise<RecordsResponse>;
+  getById(id: string): Promise<WalletRecord>;
+  create(body: CreateRecordBody, idempotencyKey: string): Promise<WalletRecord>;
+  update(id: string, body: UpdateRecordBody): Promise<WalletRecord>;
+  delete(id: string): Promise<void>;
 }
-
-export type ListAccountsOptions = {
-  includeArchived?: boolean;
-};
 
 export interface AccountRepository {
   list(options?: ListAccountsOptions): Promise<Account[]>;
   getById(id: string): Promise<Account>;
-  create(body: CreateAccountBody): Promise<Account>;
+  create(body: CreateAccountBody, idempotencyKey: string): Promise<Account>;
   update(id: string, body: UpdateAccountBody): Promise<Account>;
   archive(id: string, archived: boolean): Promise<Account>;
   delete(id: string): Promise<void>;
 }
 
-export class AccountApiError extends Error {
-  constructor(readonly code: string) {
-    super(code);
-    this.name = 'AccountApiError';
-  }
+export interface WriteQueue {
+  list(): Promise<PendingWrite[]>;
+  enqueue(item: PendingWrite): Promise<void>;
+  remove(id: string): Promise<void>;
 }
 
-export type ListRecordsOptions = {
-  from: string;
-  to: string;
-  accountIds?: string[];
-};
-
-export interface RecordRepository {
-  list(options: ListRecordsOptions): Promise<RecordsResponse>;
-  getById(id: string): Promise<WalletRecord>;
-  create(body: CreateRecordBody): Promise<WalletRecord>;
-  update(id: string, body: UpdateRecordBody): Promise<WalletRecord>;
-  delete(id: string): Promise<void>;
+export interface IdGenerator {
+  generate(): string;
 }
 
-export class RecordApiError extends Error {
-  constructor(readonly code: string) {
-    super(code);
-    this.name = 'RecordApiError';
-  }
+export interface Clock {
+  nowIso(): string;
 }
-
-export type StartBankConnectionResult = {
-  id: string;
-  authorizationUrl: string;
-};
-
-export type SyncBankAccountResult = {
-  importedCount: number;
-};
 
 export interface BankApi {
   connectionOptions(): Promise<BankConnectionOptions>;
@@ -108,11 +85,6 @@ export interface BankApi {
 export interface BankAuthSession {
   redirectUri(): string;
   open(authorizationUrl: string, redirectUri: string): Promise<'success' | 'cancel'>;
-}
-
-export class BankApiError extends Error {
-  constructor(readonly code: string) {
-    super(code);
-    this.name = 'BankApiError';
-  }
+  dismissPending(): void;
+  notifyFromCallbackWindow(): boolean;
 }

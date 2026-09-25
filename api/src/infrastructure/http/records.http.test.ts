@@ -36,7 +36,7 @@ describe('records HTTP', () => {
     const created = await app.inject({
       method: 'POST',
       url: '/records',
-      headers: auth,
+      headers: { ...auth, 'idempotency-key': 'rec-create-1' },
       payload: {
         kind: 'expense',
         accountId: cash?.id,
@@ -84,7 +84,7 @@ describe('records HTTP', () => {
     const bank = await app.inject({
       method: 'POST',
       url: '/accounts',
-      headers: auth,
+      headers: { ...auth, 'idempotency-key': 'acc-bank-1' },
       payload: { kind: 'bank', name: 'CIC' },
     });
     const bankId = bank.json().id as string;
@@ -92,7 +92,7 @@ describe('records HTTP', () => {
     const onBank = await app.inject({
       method: 'POST',
       url: '/records',
-      headers: auth,
+      headers: { ...auth, 'idempotency-key': 'rec-on-bank-1' },
       payload: {
         kind: 'expense',
         accountId: bankId,
@@ -106,7 +106,7 @@ describe('records HTTP', () => {
     const transfer = await app.inject({
       method: 'POST',
       url: '/records',
-      headers: auth,
+      headers: { ...auth, 'idempotency-key': 'rec-transfer-1' },
       payload: {
         kind: 'transfer',
         fromAccountId: cash?.id,

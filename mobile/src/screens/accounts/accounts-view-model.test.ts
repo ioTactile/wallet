@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { DEFAULT_ACCOUNT_COLOR } from '@wallet/shared';
 
 import { makeBankAccount, makeCashAccount } from '@/application/fakes';
-import { AccountApiError, BankApiError } from '@/domain/ports';
+import { AccountApiError, BankApiError } from '@/domain/errors';
 
 import {
   accountConfirmCopy,

@@ -15,7 +15,10 @@ import {
 import { CreateAccount } from './create-account.js';
 import { CompleteBankConnection } from './complete-bank-connection.js';
 import { DisconnectBankAccount } from './disconnect-bank-account.js';
-import { FakeBankConnection, SANDBOX_CHECKING_EXTERNAL_ID } from './fake-bank-connection.js';
+import {
+  FakeBankConnection,
+  SANDBOX_CHECKING_EXTERNAL_ID,
+} from '../infrastructure/fake-bank-connection.js';
 import {
   FixedClock,
   InMemoryAccountRepository,

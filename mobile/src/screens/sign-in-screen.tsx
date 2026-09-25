@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
-import { AuthApiError } from '@/domain/ports';
+import { AuthApiError } from '@/domain/errors';
 
 export function SignInScreen() {
   const { t } = useTranslation();

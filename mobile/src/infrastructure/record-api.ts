@@ -1,4 +1,5 @@
 import {
+  IDEMPOTENCY_KEY_HEADER,
   createRecordBodySchema,
   listRecordsQuerySchema,
   recordSchema,
@@ -10,14 +11,9 @@ import {
   type UpdateRecordBody,
 } from '@wallet/shared';
 
-import {
-  AuthApiError,
-  RecordApiError,
-  type AuthApi,
-  type ListRecordsOptions,
-  type RecordRepository,
-  type SessionVault,
-} from '@/domain/ports';
+import { AuthApiError, RecordApiError } from '@/domain/errors';
+import type { ListRecordsOptions } from '@/domain/list-options';
+import type { AuthApi, RecordRepository, SessionVault } from '@/domain/ports';
 
 function baseUrl() {
   const url = process.env.EXPO_PUBLIC_API_URL;
@@ -59,10 +55,11 @@ export class HttpRecordApi implements RecordRepository {
     return recordSchema.parse(await this.requestJson(`/records/${id}`, { method: 'GET' }));
   }
 
-  async create(body: CreateRecordBody): Promise<WalletRecord> {
+  async create(body: CreateRecordBody, idempotencyKey: string): Promise<WalletRecord> {
     return recordSchema.parse(
       await this.requestJson('/records', {
         method: 'POST',
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         body: JSON.stringify(createRecordBodySchema.parse(body)),
       }),
     );

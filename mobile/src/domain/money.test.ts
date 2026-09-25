@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { centsToInput, formatMoney, parseEurosToCents } from '@/domain/money';
+import { centsToInput, formatCompactMoney, formatMoney, parseEurosToCents } from '@/domain/money';
 
 describe('formatMoney', () => {
   it('formats integer cents as a French euro label without floats', () => {
@@ -12,6 +12,13 @@ describe('formatMoney', () => {
 
   it('rejects a non-integer amount', () => {
     expect(() => formatMoney(1.5)).toThrow('cents_not_integer');
+  });
+});
+
+describe('formatCompactMoney', () => {
+  it('formats integer cents with compact notation for the locale', () => {
+    expect(formatCompactMoney(1_500_00, 'fr-FR')).toMatch(/1[,.]5/);
+    expect(() => formatCompactMoney(1.5, 'fr-FR')).toThrow('cents_not_integer');
   });
 });
 

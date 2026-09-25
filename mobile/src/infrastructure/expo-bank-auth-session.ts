@@ -72,6 +72,14 @@ export class ExpoBankAuthSession implements BankAuthSession {
     const result = await WebBrowser.openAuthSessionAsync(authorizationUrl, redirectUri);
     return result.type === 'success' ? 'success' : 'cancel';
   }
+
+  dismissPending(): void {
+    dismissWebBankAuth();
+  }
+
+  notifyFromCallbackWindow(): boolean {
+    return notifyBankAuthFromWindow();
+  }
 }
 
 function openWebBankAuthPopup(authorizationUrl: string): Promise<'success' | 'cancel'> {

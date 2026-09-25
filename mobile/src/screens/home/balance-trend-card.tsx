@@ -14,6 +14,7 @@ import type { Account, Record as WalletRecord } from '@wallet/shared';
 import { AreaChart } from '@/components/area-chart';
 import { Icons } from '@/constants/icons';
 import { Colors, Spacing } from '@/constants/theme';
+import { formatCompactMoney } from '@/domain/money';
 import type { DataScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { buildBalanceTrend } from '@/screens/home/balance-trend-view-model';
 import {
@@ -70,7 +71,7 @@ export function BalanceTrendCard({
   const chartWidth = Math.max(width - Spacing.four * 2 - Spacing.three * 2, 200);
   const yMin = vm.yTicks[0]?.cents ?? 0;
   const yMax = vm.yTicks.at(-1)?.cents ?? 0;
-  const yLabels = [...vm.yTicks].reverse().map((tick) => formatAxisAmount(tick.cents, locale));
+  const yLabels = [...vm.yTicks].reverse().map((tick) => formatCompactMoney(tick.cents, locale));
   const xLabels = xTickLabels(vm.points, locale, now, t('record.period.today'));
 
   return (
@@ -161,13 +162,6 @@ export function BalanceTrendCard({
 
 function formatDelta(delta: number): string {
   return `${delta > 0 ? '+' : ''}${delta}%`;
-}
-
-function formatAxisAmount(cents: number, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(cents / 100);
 }
 
 function xTickLabels(

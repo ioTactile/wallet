@@ -93,6 +93,7 @@ export {
   type SuggestCategoryInput,
 } from './category/suggest-category.js';
 export { UI_MESSAGES, i18nResources, type UiMessageKey } from './i18n/ui.js';
+export { IDEMPOTENCY_KEY_HEADER, idempotencyKeySchema, type IdempotencyKey } from './http.js';
 export { DEFAULT_LOCALE, LOCALES, resolveLocale, type Locale } from './locale.js';
 export { RECORD_CLEARING, RECORD_KINDS, type RecordClearing, type RecordKind } from './record.js';
 export {

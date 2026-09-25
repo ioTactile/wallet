@@ -18,7 +18,6 @@ import {
   SequentialIds,
 } from './fakes.js';
 import { GetAccountBalances } from './get-account-balances.js';
-import { mapRecord } from './map-record.js';
 import { UpdateRecord } from './update-record.js';
 
 const USER_ID = '7c1e9b4a-2d3f-4a5b-8c9d-0e1f2a3b4c5d';
@@ -61,10 +60,7 @@ describe('record use cases', () => {
 
     expect(record.kind).toBe('expense');
     expect(record.amountCents).toBe(199);
-    const dto = mapRecord(record);
-    expect(dto.kind).toBe('expense');
-    if (dto.kind !== 'expense') throw new Error('expected expense');
-    expect(dto.accountId).toBe(cash.id);
+    expect(record.accountId).toBe(cash.id);
 
     const listed = await list.execute(USER_ID, { from: FROM, to: TO });
     expect(listed.records).toHaveLength(1);

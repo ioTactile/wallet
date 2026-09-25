@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 import { maskIban } from '@/domain/iban';
 import { centsToInput, formatMoney, parseEurosToCents } from '@/domain/money';
-import { AccountApiError, BankApiError } from '@/domain/ports';
+import { AccountApiError, BankApiError } from '@/domain/errors';
 
 export type DataScreenStatus = 'loading' | 'error' | 'empty' | 'content';
 

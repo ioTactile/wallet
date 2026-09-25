@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
-import { BankApiError } from '@/domain/ports';
+import { BankApiError } from '@/domain/errors';
 import { InMemorySessionVault, makeBankAccount } from '@/application/fakes';
 
 import { HttpBankApi } from './bank-api';

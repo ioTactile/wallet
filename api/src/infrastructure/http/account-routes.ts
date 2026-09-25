@@ -17,9 +17,11 @@ import type { DisconnectBankAccount } from '../../application/disconnect-bank-ac
 import type { GetAccount } from '../../application/get-account.js';
 import type { GetAccountBalances } from '../../application/get-account-balances.js';
 import type { ListAccounts } from '../../application/list-accounts.js';
+import type { RunIdempotent } from '../../application/run-idempotent.js';
 import type { SyncBankAccount } from '../../application/sync-bank-account.js';
 import type { UpdateAccount } from '../../application/update-account.js';
 import type { Account } from '../../domain/account.js';
+import { hashIdempotencyPayload, parseIdempotencyKey } from './idempotency.js';
 
 export type AccountRoutesDeps = {
   listAccounts: ListAccounts;
@@ -31,6 +33,7 @@ export type AccountRoutesDeps = {
   getAccountBalances: GetAccountBalances;
   syncBankAccount: SyncBankAccount;
   disconnectBankAccount: DisconnectBankAccount;
+  runIdempotent: RunIdempotent;
 };
 
 export async function registerAccountRoutes(app: FastifyInstance, deps: AccountRoutesDeps) {
@@ -49,9 +52,20 @@ export async function registerAccountRoutes(app: FastifyInstance, deps: AccountR
   });
 
   app.post('/accounts', { onRequest: [app.authenticate] }, async (request, reply) => {
+    const key = parseIdempotencyKey(request.headers);
     const body = createAccountBodySchema.parse(request.body);
-    const account = await deps.createAccount.execute(request.user.sub, body);
-    return reply.code(201).send(presentAccount(account, new Map()));
+    const result = await deps.runIdempotent.execute({
+      userId: request.user.sub,
+      key,
+      method: 'POST',
+      path: '/accounts',
+      requestHash: hashIdempotencyPayload(body),
+      run: async () => {
+        const account = await deps.createAccount.execute(request.user.sub, body);
+        return { status: 201, body: presentAccount(account, new Map()) };
+      },
+    });
+    return reply.code(result.status).send(result.body);
   });
 
   app.patch('/accounts/:id', { onRequest: [app.authenticate] }, async (request) => {

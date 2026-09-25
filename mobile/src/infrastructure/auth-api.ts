@@ -1,6 +1,7 @@
 import { authUserSchema, sessionResponseSchema } from '@wallet/shared';
 
-import { AuthApiError, type AuthApi } from '@/domain/ports';
+import { AuthApiError } from '@/domain/errors';
+import type { AuthApi } from '@/domain/ports';
 import type { Session } from '@/domain/session';
 
 function baseUrl() {

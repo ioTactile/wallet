@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CreateAccountBody, UpdateAccountBody } from '@wallet/shared';
 
 import { accountUseCases } from '@/application/use-cases';
-import { accountQueryKeys } from '@/infrastructure/account-query-keys';
+import { accountQueryKeys } from '@/screens/accounts/account-query-keys';
 
 export function useAccountList(includeArchived = false) {
   return useQuery({

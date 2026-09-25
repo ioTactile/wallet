@@ -1,4 +1,5 @@
 import {
+  IDEMPOTENCY_KEY_HEADER,
   accountSchema,
   accountsResponseSchema,
   archiveAccountBodySchema,
@@ -7,14 +8,9 @@ import {
   type UpdateAccountBody,
 } from '@wallet/shared';
 
-import {
-  AccountApiError,
-  AuthApiError,
-  type AccountRepository,
-  type AuthApi,
-  type ListAccountsOptions,
-  type SessionVault,
-} from '@/domain/ports';
+import { AccountApiError, AuthApiError } from '@/domain/errors';
+import type { ListAccountsOptions } from '@/domain/list-options';
+import type { AccountRepository, AuthApi, SessionVault } from '@/domain/ports';
 
 function baseUrl() {
   const url = process.env.EXPO_PUBLIC_API_URL;
@@ -49,9 +45,13 @@ export class HttpAccountApi implements AccountRepository {
     return accountSchema.parse(await this.requestJson(`/accounts/${id}`, { method: 'GET' }));
   }
 
-  async create(body: CreateAccountBody): Promise<Account> {
+  async create(body: CreateAccountBody, idempotencyKey: string): Promise<Account> {
     return accountSchema.parse(
-      await this.requestJson('/accounts', { method: 'POST', body: JSON.stringify(body) }),
+      await this.requestJson('/accounts', {
+        method: 'POST',
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        body: JSON.stringify(body),
+      }),
     );
   }
 

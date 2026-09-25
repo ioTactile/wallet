@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/brand-header';
 import { Colors, Spacing } from '@/constants/theme';
-import { RecordApiError } from '@/domain/ports';
+import { RecordApiError } from '@/domain/errors';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
 import { recordsListHref } from '@/screens/records/records-navigation';
 import {
@@ -98,9 +98,13 @@ export function NewRecordScreen() {
         rightIcon="checkmark"
         color={colors.action}
         onLeftPress={() => router.dismissTo(recordsListHref())}
-        onRightPress={() => {
-          void submit();
-        }}
+        onRightPress={
+          pending
+            ? undefined
+            : () => {
+                void submit();
+              }
+        }
       />
       <View style={styles.tabs}>
         {(['income', 'expense', 'transfer'] as const).map((item) => (

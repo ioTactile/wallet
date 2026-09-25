@@ -17,7 +17,7 @@ import { ConfirmSheet, useConfirmSheet } from '@/components/confirm-sheet';
 import { NativeSwitch } from '@/components/native-switch';
 import { Colors, Spacing } from '@/constants/theme';
 import { formatMoney } from '@/domain/money';
-import { RecordApiError } from '@/domain/ports';
+import { RecordApiError } from '@/domain/errors';
 import { detailScreenStatus } from '@/screens/accounts/accounts-view-model';
 import { useAccountList } from '@/screens/accounts/use-account-queries';
 import { recordExitHref } from '@/screens/records/records-navigation';
